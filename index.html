@@ -94,139 +94,18 @@
             box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
         
-        .search-btn:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 40px;
-            display: none;
-        }
-        
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .results-section {
-            padding: 40px;
-            background: #f8f9fa;
-            display: none;
-        }
-        
-        .results-title {
-            font-size: 1.5em;
-            margin-bottom: 20px;
-            color: #2c3e50;
-            text-align: center;
-        }
-        
-        .direct-result {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            border-radius: 8px;
+        .info-box {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            color: #1565c0;
             padding: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .direct-result h3 {
-            color: #155724;
-            margin-bottom: 10px;
-        }
-        
-        .parts-list {
-            display: grid;
-            gap: 15px;
-        }
-        
-        .part-item {
-            background: white;
-            border: 2px solid #e0e0e0;
             border-radius: 8px;
-            padding: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .part-item:hover {
-            border-color: #667eea;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .part-item.selected {
-            border-color: #667eea;
-            background: #f0f4ff;
-        }
-        
-        .part-number {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 5px;
-        }
-        
-        .part-name {
-            font-size: 1.1em;
-            color: #2c3e50;
-            margin-bottom: 8px;
-        }
-        
-        .part-details {
-            display: flex;
-            gap: 20px;
-            font-size: 0.9em;
-            color: #666;
-        }
-        
-        .confirm-btn {
-            width: 100%;
-            padding: 15px;
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
             margin-top: 20px;
-            display: none;
-        }
-        
-        .confirm-btn:hover {
-            background: #218838;
-        }
-        
-        .error {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        
-        .success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
             text-align: center;
+        }
+        
+        .info-box h3 {
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -237,8 +116,8 @@
             <p>מערכת חכמה לאיתור חלקי רכב</p>
         </div>
         
-        <div class="form-section" id="searchForm">
-            <form id="partsForm">
+        <div class="form-section">
+            <form id="partsForm" method="POST" target="_blank">
                 <div class="form-group">
                     <label for="carNumber">מספר רכב:</label>
                     <input type="text" id="carNumber" name="carNumber" required 
@@ -251,20 +130,16 @@
                            placeholder="לדוגמא: מדחס, בלם, מנוע">
                 </div>
                 
-                <button type="submit" class="search-btn" id="searchBtn">
+                <button type="submit" class="search-btn">
                     🔍 חפש חלקים
                 </button>
             </form>
-        </div>
-        
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p>מחפש חלקים... אנא המתן</p>
-        </div>
-        
-        <div class="results-section" id="results">
-            <div class="results-title">תוצאות חיפוש</div>
-            <div id="resultsContent"></div>
+            
+            <div class="info-box">
+                <h3>📋 איך זה עובד?</h3>
+                <p>מלא את הפרטים ולחץ חפש - התוצאות יפתחו בטאב חדש</p>
+                <p>אם יש מספר תוצאות, תוכל לבחור את החלק המתאים</p>
+            </div>
         </div>
     </div>
 
@@ -272,7 +147,7 @@
         // זיהוי אוטומטי של כתובת ה-N8N
         let WEBHOOK_URL;
         
-        // אם האתר רץ מ-GitHub Pages, בקש מהמשתמש את הכתובת
+        // הגדרת כתובת N8N
         if (window.location.hostname.includes('github.io')) {
             const savedURL = localStorage.getItem('n8n_webhook_url');
             if (savedURL) {
@@ -288,166 +163,14 @@
                 }
             }
         } else {
-            // אם האתר רץ מקומית
             WEBHOOK_URL = 'http://localhost:5678/webhook/search-parts';
         }
         
-        let selectedPartIndex = null;
-        let searchResults = null;
-        
-        document.getElementById('partsForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const carNumber = document.getElementById('carNumber').value;
-            const partName = document.getElementById('partName').value;
-            
-            // הצגת טעינה
-            document.getElementById('searchForm').style.display = 'none';
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('results').style.display = 'none';
-            
-            try {
-                const response = await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        carNumber: carNumber,
-                        partName: partName
-                    })
-                });
-                
-                const data = await response.json();
-                
-                // הסתרת טעינה
-                document.getElementById('loading').style.display = 'none';
-                
-                if (data.directResult) {
-                    // תוצאה ישירה
-                    showDirectResult(data.result);
-                } else if (data.multipleResults) {
-                    // מספר תוצאות לבחירה
-                    showMultipleResults(data.results);
-                } else {
-                    // שגיאה
-                    showError(data.error || 'אירעה שגיאה בחיפוש');
-                }
-                
-            } catch (error) {
-                document.getElementById('loading').style.display = 'none';
-                showError('שגיאה בחיבור לשרת');
-            }
+        // עדכון action של הטופס
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('partsForm').action = WEBHOOK_URL;
+            console.log('Webhook URL set to:', WEBHOOK_URL);
         });
-        
-        function showDirectResult(result) {
-            const content = `
-                <div class="direct-result">
-                    <h3>✅ נמצא חלק מתאים!</h3>
-                    <div class="part-name">${result.name}</div>
-                    <div class="part-details">
-                        <span><strong>קוד:</strong> ${result.code}</span>
-                        <span><strong>מקט:</strong> ${result.oem}</span>
-                    </div>
-                </div>
-                <div class="success">
-                    החיפוש הושלם בהצלחה! החלק נמצא במערכת.
-                </div>
-            `;
-            
-            document.getElementById('resultsContent').innerHTML = content;
-            document.getElementById('results').style.display = 'block';
-        }
-        
-        function showMultipleResults(results) {
-            searchResults = results;
-            
-            let content = '<div class="results-title">נמצאו מספר תוצאות - בחר את החלק המתאים:</div>';
-            content += '<div class="parts-list">';
-            
-            results.forEach((part, index) => {
-                content += `
-                    <div class="part-item" onclick="selectPart(${index})">
-                        <div class="part-number">[${index}]</div>
-                        <div class="part-name">${part.name}</div>
-                        <div class="part-details">
-                            <span><strong>Code:</strong> ${part.code}</span>
-                            <span><strong>OEM:</strong> ${part.oem}</span>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            content += '</div>';
-            content += '<button class="confirm-btn" id="confirmBtn" onclick="confirmSelection()">אשר בחירה</button>';
-            
-            document.getElementById('resultsContent').innerHTML = content;
-            document.getElementById('results').style.display = 'block';
-        }
-        
-        function selectPart(index) {
-            // הסרת בחירה קודמת
-            document.querySelectorAll('.part-item').forEach(item => {
-                item.classList.remove('selected');
-            });
-            
-            // סימון החלק הנבחר
-            document.querySelectorAll('.part-item')[index].classList.add('selected');
-            selectedPartIndex = index;
-            
-            // הצגת כפתור אישור
-            document.getElementById('confirmBtn').style.display = 'block';
-        }
-        
-        async function confirmSelection() {
-            if (selectedPartIndex === null) return;
-            
-            const selectedPart = searchResults[selectedPartIndex];
-            
-            try {
-                // שליחת הבחירה ל-N8N
-                const confirmURL = WEBHOOK_URL.replace('/search-parts', '/confirm-selection');
-                const response = await fetch(confirmURL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        selectedPart: selectedPart,
-                        selectedIndex: selectedPartIndex
-                    })
-                });
-                
-                if (response.ok) {
-                    showSuccess(selectedPart);
-                }
-                
-            } catch (error) {
-                showError('שגיאה בשמירת הבחירה');
-            }
-        }
-        
-        function showSuccess(part) {
-            const content = `
-                <div class="success">
-                    <h3>✅ הבחירה נשמרה בהצלחה!</h3>
-                    <div style="margin-top: 15px;">
-                        <strong>החלק שנבחר:</strong> ${part.name}<br>
-                        <strong>קוד:</strong> ${part.code}<br>
-                        <strong>מקט:</strong> ${part.oem}
-                    </div>
-                    <p style="margin-top: 15px;">הקוד נוסף למערכת לחיפושים עתידיים</p>
-                </div>
-            `;
-            
-            document.getElementById('resultsContent').innerHTML = content;
-        }
-        
-        function showError(message) {
-            const content = `<div class="error">❌ ${message}</div>`;
-            document.getElementById('resultsContent').innerHTML = content;
-            document.getElementById('results').style.display = 'block';
-        }
     </script>
 </body>
 </html>
