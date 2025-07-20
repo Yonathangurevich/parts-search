@@ -241,6 +241,7 @@
         // עדכון action של הטופס
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('partsForm').action = WEBHOOK_URL;
+            document.getElementById('partsForm').method = 'POST'; // ודא שזה POST
             console.log('Webhook URL set to:', WEBHOOK_URL);
         });
         
