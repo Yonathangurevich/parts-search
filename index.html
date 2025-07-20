@@ -231,11 +231,11 @@
                     localStorage.setItem('n8n_webhook_url', WEBHOOK_URL);
                 } else {
                     alert('נדרשת כתובת N8N כדי להמשיך');
-                    WEBHOOK_URL = 'http://localhost:5678/webhook/search-parts';
+                    WEBHOOK_URL = 'http://localhost:5678/webhook-test/search-parts';
                 }
             }
         } else {
-            WEBHOOK_URL = 'http://localhost:5678/webhook/search-parts';
+            WEBHOOK_URL = 'http://localhost:5678/webhook-test/search-parts';
         }
         
         // עדכון action של הטופס
