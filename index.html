@@ -262,6 +262,43 @@
         .custom-config.show {
             display: block;
         }
+
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .results-container {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .new-search-btn {
+            background: #28a745;
+            margin-top: 15px;
+        }
+
+        .new-search-btn:hover {
+            background: #218838;
+        }
     </style>
 </head>
 <body>
@@ -275,7 +312,7 @@
             <div class="config-group">
                 <div class="config-label">🌐 סביבת עבודה:</div>
                 <div class="cloud-options">
-                    <button class="cloud-btn active" data-mode="cloud">N8N Cloud</button>
+                    <button class="cloud-btn active" data-mode="railway">Railway Cloud</button>
                     <button class="cloud-btn" data-mode="local">Local Server</button>
                     <button class="cloud-btn" data-mode="custom">מותאם אישית</button>
                 </div>
@@ -298,7 +335,7 @@
         </div>
         
         <div class="form-section" id="searchForm">
-            <form id="partsForm" method="POST" target="_blank">
+            <form id="partsForm">
                 <div class="form-group">
                     <label for="carNumber">מספר רכב:</label>
                     <input type="text" id="carNumber" name="carNumber" required 
@@ -315,6 +352,22 @@
                     🔍 חפש חלקים
                 </button>
             </form>
+
+            <div class="success-message" id="successMessage">
+                ✅ החיפוש הושלם בהצלחה! התוצאות נפתחו בטאב חדש.
+            </div>
+
+            <div class="error-message" id="errorMessage">
+                ❌ שגיאה בחיפוש. אנא נסה שוב או בדוק את הנתונים.
+            </div>
+
+            <div class="results-container" id="resultsContainer">
+                <h3>🎯 החיפוש הושלם!</h3>
+                <p>התוצאות נפתחו בטאב חדש. תוכל להמשיך לחפש חלקים נוספים.</p>
+                <button type="button" class="search-btn new-search-btn" onclick="resetForm()">
+                    🔄 חיפוש חדש
+                </button>
+            </div>
             
             <div class="info-box">
                 <h3>📋 איך זה עובד?</h3>
@@ -335,15 +388,15 @@
     </div>
 
     <script>
-        // הגדרות קבועות
+        // הגדרות קבועות - עודכן עם Railway
         const CLOUD_ENDPOINTS = {
-            cloud: 'https://jhonyblyt.app.n8n.cloud/webhook/search-parts',
+            railway: 'https://primary-production-2075.up.railway.app/webhook/search-parts',
             local: 'http://localhost:5678/webhook/search-parts',
             custom: ''
         };
         
-        let currentMode = 'cloud';
-        let WEBHOOK_URL = CLOUD_ENDPOINTS.cloud;
+        let currentMode = 'railway';
+        let WEBHOOK_URL = CLOUD_ENDPOINTS.railway;
         
         // טעינת הגדרות משמורות
         document.addEventListener('DOMContentLoaded', function() {
@@ -353,7 +406,7 @@
         });
         
         function loadSavedSettings() {
-            const savedMode = localStorage.getItem('webhook_mode') || 'cloud';
+            const savedMode = localStorage.getItem('webhook_mode') || 'railway';
             const savedCustomURL = localStorage.getItem('custom_webhook_url') || '';
             
             currentMode = savedMode;
@@ -402,80 +455,67 @@
                 localStorage.setItem('custom_webhook_url', customURL);
                 if (currentMode === 'custom') {
                     WEBHOOK_URL = customURL;
-                    updateFormAction();
                 }
             });
             
-            // טופס החיפוש
-            document.getElementById('partsForm').addEventListener('submit', function(e) {
+            // טופס החיפוש - עודכן ל-AJAX
+            document.getElementById('partsForm').addEventListener('submit', async function(e) {
+                e.preventDefault(); // מונע שליחה רגילה
+                
                 if (!WEBHOOK_URL || WEBHOOK_URL.trim() === '') {
-                    e.preventDefault();
-                    alert('אנא הגדר כתובת Webhook תקפה');
+                    showError('אנא הגדר כתובת Webhook תקפה');
                     return;
                 }
                 
-                showLoadingScreen();
+                await performSearch();
             });
         }
         
-        function updateWebhookURL() {
-            if (currentMode === 'custom') {
-                WEBHOOK_URL = document.getElementById('customWebhook').value.trim() || '';
-            } else {
-                WEBHOOK_URL = CLOUD_ENDPOINTS[currentMode];
-            }
+        async function performSearch() {
+            const carNumber = document.getElementById('carNumber').value.trim();
+            const partName = document.getElementById('partName').value.trim();
             
-            updateFormAction();
-            updateConnectionStatus('לא נבדק', false);
-        }
-        
-        function updateFormAction() {
-            document.getElementById('partsForm').action = WEBHOOK_URL;
-            console.log('Webhook URL updated to:', WEBHOOK_URL);
-        }
-        
-        async function testConnection() {
-            if (!WEBHOOK_URL || WEBHOOK_URL.trim() === '') {
-                alert('אנא הכנס כתובת Webhook');
+            if (!carNumber || !partName) {
+                showError('אנא מלא את כל השדות');
                 return;
             }
             
-            updateConnectionStatus('בודק חיבור...', false);
+            // הצג מסך טעינה
+            showLoadingScreen();
             
             try {
-                // בדיקת חיבור פשוטה
+                // שליחת הבקשה ל-n8n
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ test: true }),
-                    mode: 'no-cors' // עקיפת CORS לבדיקה
+                    body: JSON.stringify({
+                        carNumber: carNumber,
+                        partName: partName
+                    })
                 });
                 
-                // אם הגענו לכאן, השרת זמין
-                updateConnectionStatus('מחובר ✓', true);
+                if (response.ok) {
+                    // החיפוש הצליח
+                    hideLoadingScreen();
+                    showSuccess('החיפוש הושלם בהצלחה!');
+                    
+                    // פתח טאב חדש עם התוצאות
+                    const resultsURL = `${WEBHOOK_URL}?carNumber=${encodeURIComponent(carNumber)}&partName=${encodeURIComponent(partName)}`;
+                    window.open(resultsURL, '_blank');
+                    
+                    // הצג כפתור חיפוש חדש
+                    showResults();
+                    
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
                 
             } catch (error) {
-                console.error('Connection test failed:', error);
-                
-                // נסה לבדוק אם זה בגלל CORS
-                if (error.name === 'TypeError' && error.message.includes('CORS')) {
-                    updateConnectionStatus('זמין (CORS מוגבל) ⚠️', true);
-                } else {
-                    updateConnectionStatus('שגיאת חיבור ✗', false);
-                }
-            }
-        }
-        
-        function updateConnectionStatus(message, isConnected) {
-            document.getElementById('connectionStatus').textContent = message;
-            const indicator = document.getElementById('statusIndicator');
-            
-            if (isConnected) {
-                indicator.className = 'status-indicator status-connected';
-            } else {
-                indicator.className = 'status-indicator status-disconnected';
+                console.error('Search failed:', error);
+                hideLoadingScreen();
+                showError('שגיאה בחיפוש. אנא נסה שוב.');
             }
         }
         
@@ -503,25 +543,107 @@
                     statusElement.textContent = 'כמעט מוכן...';
                 }
             }, 1500);
+            
+            // שמירת ה-interval כדי לוכל לעצור אותו
+            window.currentLoadingInterval = messageInterval;
         }
         
-        // הגדרת URL ברירת מחדל לפי הסביבה
-        function detectEnvironment() {
-            const hostname = window.location.hostname;
+        function hideLoadingScreen() {
+            if (window.currentLoadingInterval) {
+                clearInterval(window.currentLoadingInterval);
+            }
+            document.getElementById('loadingSection').style.display = 'none';
+            document.getElementById('searchForm').style.display = 'block';
+        }
+        
+        function showSuccess(message) {
+            const successEl = document.getElementById('successMessage');
+            successEl.textContent = '✅ ' + message;
+            successEl.style.display = 'block';
             
-            if (hostname.includes('github.io') || hostname.includes('netlify') || hostname.includes('vercel')) {
-                return 'cloud';
-            } else if (hostname === 'localhost' || hostname.startsWith('192.168.') || hostname.startsWith('10.')) {
-                return 'local';
+            // הסתר אחרי 5 שניות
+            setTimeout(() => {
+                successEl.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = '❌ ' + message;
+            errorEl.style.display = 'block';
+            
+            // הסתר אחרי 5 שניות
+            setTimeout(() => {
+                errorEl.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showResults() {
+            document.getElementById('resultsContainer').style.display = 'block';
+        }
+        
+        function resetForm() {
+            // נקה את הטופס
+            document.getElementById('carNumber').value = '';
+            document.getElementById('partName').value = '';
+            
+            // הסתר הודעות
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('resultsContainer').style.display = 'none';
+            
+            // פוקוס על השדה הראשון
+            document.getElementById('carNumber').focus();
+        }
+        
+        function updateWebhookURL() {
+            if (currentMode === 'custom') {
+                WEBHOOK_URL = document.getElementById('customWebhook').value.trim() || '';
             } else {
-                return 'cloud'; // ברירת מחדל
+                WEBHOOK_URL = CLOUD_ENDPOINTS[currentMode];
+            }
+            
+            updateConnectionStatus('לא נבדק', false);
+        }
+        
+        async function testConnection() {
+            if (!WEBHOOK_URL || WEBHOOK_URL.trim() === '') {
+                alert('אנא הכנס כתובת Webhook');
+                return;
+            }
+            
+            updateConnectionStatus('בודק חיבור...', false);
+            
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ test: true }),
+                });
+                
+                if (response.ok) {
+                    updateConnectionStatus('מחובר ✓', true);
+                } else {
+                    updateConnectionStatus('שגיאת שרת ⚠️', false);
+                }
+                
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                updateConnectionStatus('שגיאת חיבור ✗', false);
             }
         }
         
-        // עדכון אוטומטי של ברירת המחדל
-        if (!localStorage.getItem('webhook_mode')) {
-            currentMode = detectEnvironment();
-            localStorage.setItem('webhook_mode', currentMode);
+        function updateConnectionStatus(message, isConnected) {
+            document.getElementById('connectionStatus').textContent = message;
+            const indicator = document.getElementById('statusIndicator');
+            
+            if (isConnected) {
+                indicator.className = 'status-indicator status-connected';
+            } else {
+                indicator.className = 'status-indicator status-disconnected';
+            }
         }
     </script>
 </body>
