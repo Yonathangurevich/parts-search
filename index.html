@@ -158,62 +158,6 @@
             transform: none;
         }
         
-        .loading-section {
-            padding: 40px;
-            text-align: center;
-            display: none;
-            background: #f8f9fa;
-        }
-        
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .loading-text {
-            font-size: 1.2em;
-            color: #2c3e50;
-            margin-bottom: 10px;
-        }
-        
-        .loading-subtext {
-            color: #666;
-            font-size: 0.9em;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: #e0e0e0;
-            border-radius: 3px;
-            margin: 20px 0;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            width: 0%;
-            animation: progressAnimation 8s ease-in-out infinite;
-            border-radius: 3px;
-        }
-        
-        @keyframes progressAnimation {
-            0% { width: 0%; }
-            50% { width: 70%; }
-            100% { width: 100%; }
-        }
-        
         .info-box {
             background: #e3f2fd;
             border: 1px solid #bbdefb;
@@ -283,20 +227,29 @@
             display: none;
         }
 
-        .results-container {
-            display: none;
-            margin-top: 20px;
-            padding: 20px;
-            background: #f8f9fa;
+        .countdown-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
             border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+            text-align: center;
         }
 
-        .new-search-btn {
+        .countdown-timer {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .reset-btn {
             background: #28a745;
             margin-top: 15px;
         }
 
-        .new-search-btn:hover {
+        .reset-btn:hover {
             background: #218838;
         }
     </style>
@@ -354,41 +307,33 @@
             </form>
 
             <div class="success-message" id="successMessage">
-                ✅ החיפוש הושלם בהצלחה! התוצאות נפתחו בטאב חדש.
+                ✅ החיפוש התחיל! התוצאות יופיעו בחלון החדש.
             </div>
 
             <div class="error-message" id="errorMessage">
-                ❌ שגיאה בחיפוש. אנא נסה שוב או בדוק את הנתונים.
+                ❌ שגיאה בחיפוש. אנא בדוק את הנתונים ונסה שוב.
             </div>
 
-            <div class="results-container" id="resultsContainer">
-                <h3>🎯 החיפוש הושלם!</h3>
-                <p>התוצאות נפתחו בטאב חדש. תוכל להמשיך לחפש חלקים נוספים.</p>
-                <button type="button" class="search-btn new-search-btn" onclick="resetForm()">
-                    🔄 חיפוש חדש
+            <div class="countdown-box" id="countdownBox">
+                <h3>🔄 החיפוש התחיל!</h3>
+                <p>החלון יוכל להציג תוצאות בעוד כמה שניות.</p>
+                <p>איפוס אוטומטי בעוד: <span class="countdown-timer" id="countdownTimer">15</span> שניות</p>
+                <button type="button" class="search-btn reset-btn" onclick="resetFormNow()">
+                    🔄 איפוס מיידי
                 </button>
             </div>
             
             <div class="info-box">
                 <h3>📋 איך זה עובד?</h3>
-                <p>מלא את הפרטים ולחץ חפש - התוצאות יופיעו בטאב חדש</p>
+                <p>מלא את הפרטים ולחץ חפש - חלון חדש ייפתח עם התוצאות</p>
                 <p>המערכת תחפש בבסיס הנתונים ותציג את החלקים המתאימים לבחירה</p>
+                <p>הטופס יתאפס אוטומטית אחרי 15 שניות לחיפוש הבא</p>
             </div>
-        </div>
-        
-        <div class="loading-section" id="loadingSection">
-            <div class="spinner"></div>
-            <div class="loading-text">🔍 מחפש חלקים במערכת...</div>
-            <div class="loading-subtext">אנא המתן, זה עלול לקחת כמה שניות</div>
-            <div class="progress-bar">
-                <div class="progress-fill"></div>
-            </div>
-            <div class="loading-subtext" id="loadingStatus">מתחבר לבסיס הנתונים...</div>
         </div>
     </div>
 
     <script>
-        // הגדרות קבועות - עודכן עם Railway
+        // הגדרות קבועות
         const CLOUD_ENDPOINTS = {
             railway: 'https://primary-production-2075.up.railway.app/webhook/search-parts',
             local: 'http://localhost:5678/webhook/search-parts',
@@ -397,6 +342,7 @@
         
         let currentMode = 'railway';
         let WEBHOOK_URL = CLOUD_ENDPOINTS.railway;
+        let countdownInterval = null;
         
         // טעינת הגדרות משמורות
         document.addEventListener('DOMContentLoaded', function() {
@@ -458,20 +404,20 @@
                 }
             });
             
-            // טופס החיפוש - עודכן ל-AJAX
+            // טופס החיפוש - שילוב של AJAX + חלון חדש בטוח
             document.getElementById('partsForm').addEventListener('submit', async function(e) {
-                e.preventDefault(); // מונע שליחה רגילה
+                e.preventDefault();
                 
                 if (!WEBHOOK_URL || WEBHOOK_URL.trim() === '') {
                     showError('אנא הגדר כתובת Webhook תקפה');
                     return;
                 }
                 
-                await performSearch();
+                await performSearchSafely();
             });
         }
         
-        async function performSearch() {
+        async function performSearchSafely() {
             const carNumber = document.getElementById('carNumber').value.trim();
             const partName = document.getElementById('partName').value.trim();
             
@@ -480,11 +426,8 @@
                 return;
             }
             
-            // הצג מסך טעינה
-            showLoadingScreen();
-            
             try {
-                // שליחת הבקשה ל-n8n
+                // 🚀 שלח AJAX request ל-N8N (ללא פתיחת חלון)
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: {
@@ -497,16 +440,17 @@
                 });
                 
                 if (response.ok) {
-                    // החיפוש הצליח
-                    hideLoadingScreen();
-                    showSuccess('החיפוש הושלם בהצלחה!');
+                    // אם השרת החזיר HTML, פתח חלון חדש עם התוכן
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('text/html')) {
+                        const htmlContent = await response.text();
+                        const newWindow = window.open('', '_blank');
+                        newWindow.document.write(htmlContent);
+                        newWindow.document.close();
+                    }
                     
-                    // פתח טאב חדש עם התוצאות
-                    const resultsURL = `${WEBHOOK_URL}?carNumber=${encodeURIComponent(carNumber)}&partName=${encodeURIComponent(partName)}`;
-                    window.open(resultsURL, '_blank');
-                    
-                    // הצג כפתור חיפוש חדש
-                    showResults();
+                    showSuccess('החיפוש התחיל! התוצאות יופיעו בחלון החדש.');
+                    startCountdown();
                     
                 } else {
                     throw new Error(`HTTP ${response.status}`);
@@ -514,57 +458,52 @@
                 
             } catch (error) {
                 console.error('Search failed:', error);
-                hideLoadingScreen();
                 showError('שגיאה בחיפוש. אנא נסה שוב.');
             }
         }
         
-        function showLoadingScreen() {
-            document.getElementById('searchForm').style.display = 'none';
-            document.getElementById('loadingSection').style.display = 'block';
+        function startCountdown() {
+            // הצג את תיבת הספירה לאחור
+            document.getElementById('countdownBox').style.display = 'block';
             
-            const loadingMessages = [
-                'מתחבר לבסיס הנתונים...',
-                'מחפש חלקים מתאימים...',
-                'סורק קטלוגים...',
-                'מסנן תוצאות...',
-                'מכין רשימה לבחירה...'
-            ];
+            let timeLeft = 15;
+            const timerElement = document.getElementById('countdownTimer');
             
-            let messageIndex = 0;
-            const statusElement = document.getElementById('loadingStatus');
-            
-            const messageInterval = setInterval(function() {
-                if (messageIndex < loadingMessages.length) {
-                    statusElement.textContent = loadingMessages[messageIndex];
-                    messageIndex++;
-                } else {
-                    clearInterval(messageInterval);
-                    statusElement.textContent = 'כמעט מוכן...';
+            countdownInterval = setInterval(function() {
+                timeLeft--;
+                timerElement.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    resetFormNow();
                 }
-            }, 1500);
-            
-            // שמירת ה-interval כדי לוכל לעצור אותו
-            window.currentLoadingInterval = messageInterval;
+            }, 1000);
         }
         
-        function hideLoadingScreen() {
-            if (window.currentLoadingInterval) {
-                clearInterval(window.currentLoadingInterval);
+        function resetFormNow() {
+            // עצור ספירה לאחור אם רצה
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
             }
-            document.getElementById('loadingSection').style.display = 'none';
-            document.getElementById('searchForm').style.display = 'block';
+            
+            // נקה את הטופס
+            document.getElementById('carNumber').value = '';
+            document.getElementById('partName').value = '';
+            
+            // הסתר הודעות
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('countdownBox').style.display = 'none';
+            
+            // פוקוס על השדה הראשון
+            document.getElementById('carNumber').focus();
         }
         
         function showSuccess(message) {
             const successEl = document.getElementById('successMessage');
             successEl.textContent = '✅ ' + message;
             successEl.style.display = 'block';
-            
-            // הסתר אחרי 5 שניות
-            setTimeout(() => {
-                successEl.style.display = 'none';
-            }, 5000);
         }
         
         function showError(message) {
@@ -576,24 +515,6 @@
             setTimeout(() => {
                 errorEl.style.display = 'none';
             }, 5000);
-        }
-        
-        function showResults() {
-            document.getElementById('resultsContainer').style.display = 'block';
-        }
-        
-        function resetForm() {
-            // נקה את הטופס
-            document.getElementById('carNumber').value = '';
-            document.getElementById('partName').value = '';
-            
-            // הסתר הודעות
-            document.getElementById('successMessage').style.display = 'none';
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('resultsContainer').style.display = 'none';
-            
-            // פוקוס על השדה הראשון
-            document.getElementById('carNumber').focus();
         }
         
         function updateWebhookURL() {
