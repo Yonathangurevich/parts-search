@@ -265,7 +265,8 @@
             <div class="config-group">
                 <div class="config-label">🌐 סביבת עבודה:</div>
                 <div class="cloud-options">
-                    <button class="cloud-btn active" data-mode="railway">Railway Cloud</button>
+                    <button class="cloud-btn active" data-mode="railway">Railway Main</button>
+                    <button class="cloud-btn" data-mode="railwayTest">Railway Test</button>
                     <button class="cloud-btn" data-mode="local">Local Server</button>
                     <button class="cloud-btn" data-mode="custom">מותאם אישית</button>
                 </div>
@@ -333,9 +334,10 @@
     </div>
 
     <script>
-        // הגדרות קבועות
+        // הגדרות קבועות - עודכן עם הURL הנכון
         const CLOUD_ENDPOINTS = {
             railway: 'https://primary-production-2075.up.railway.app/webhook/search-parts',
+            railwayTest: 'https://primary-production-2075.up.railway.app/webhook-test/search-parts',
             local: 'http://localhost:5678/webhook/search-parts',
             custom: ''
         };
