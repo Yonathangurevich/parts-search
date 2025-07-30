@@ -115,6 +115,7 @@
         
         input[type="text"],
         input[type="password"],
+        input[type="file"],
         select {
             width: 100%;
             padding: 15px;
@@ -171,6 +172,159 @@
             padding: 8px 15px;
             font-size: 14px;
             margin: 5px;
+        }
+        
+        /* Config Section */
+        .config-section {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .config-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .config-label {
+            font-weight: bold;
+            color: #2c3e50;
+            min-width: 120px;
+        }
+        
+        .config-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            min-width: 200px;
+        }
+        
+        .config-btn {
+            padding: 8px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .config-btn:hover {
+            background: #5a6fd8;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-left: 10px;
+        }
+        
+        .status-connected {
+            background: #27ae60;
+            box-shadow: 0 0 5px #27ae60;
+        }
+        
+        .status-disconnected {
+            background: #e74c3c;
+        }
+        
+        .cloud-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        
+        .cloud-btn {
+            padding: 8px 15px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .cloud-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .cloud-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .custom-config {
+            display: none;
+            width: 100%;
+            margin-top: 15px;
+        }
+        
+        .custom-config.show {
+            display: block;
+        }
+        
+        /* Screenshot Area */
+        .screenshot-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+        
+        .screenshot-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .screenshot-area.has-image {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+        
+        .screenshot-preview {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            margin: 15px 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .paste-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        .paste-btn:hover {
+            background: #218838;
+        }
+        
+        .paste-btn.remove {
+            background: #dc3545;
+        }
+        
+        .paste-btn.remove:hover {
+            background: #c82333;
         }
         
         /* Admin Panel */
@@ -251,6 +405,27 @@
         .hidden {
             display: none !important;
         }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .config-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .config-label {
+                min-width: auto;
+            }
+            
+            .cloud-options {
+                justify-content: center;
+            }
+            
+            .cloud-btn {
+                flex: 1;
+                min-width: 120px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -316,16 +491,59 @@
                 <strong>👤 משתמש:</strong> <span id="currentUserName"></span>
             </div>
             
+            <!-- הגדרות Webhook -->
+            <div class="config-section">
+                <div class="config-group">
+                    <div class="config-label">🌐 סביבת עבודה:</div>
+                    <div class="cloud-options">
+                        <button class="cloud-btn active" data-mode="railway">Railway Main</button>
+                        <button class="cloud-btn" data-mode="railwayTest">Railway Test</button>
+                        <button class="cloud-btn" data-mode="local">Local Server</button>
+                        <button class="cloud-btn" data-mode="custom">מותאם אישית</button>
+                    </div>
+                </div>
+                
+                <div class="custom-config" id="customConfig">
+                    <div class="config-group">
+                        <div class="config-label">🔗 כתובת Webhook:</div>
+                        <input type="text" class="config-input" id="customWebhook" 
+                               placeholder="https://your-n8n-instance.com/webhook/search-parts">
+                        <button class="config-btn" onclick="testConnection()">בדוק חיבור</button>
+                    </div>
+                </div>
+                
+                <div class="config-group">
+                    <div class="config-label">📊 סטטוס חיבור:</div>
+                    <span id="connectionStatus">לא נבדק</span>
+                    <span class="status-indicator status-disconnected" id="statusIndicator"></span>
+                </div>
+            </div>
+            
             <form id="searchForm">
+                <!-- צירוף תמונה במקום מקור הבקשה -->
                 <div class="form-group">
-                    <label for="source">מקור הבקשה:</label>
-                    <select id="source" name="source" required>
-                        <option value="">בחר מקור</option>
-                        <option value="whatsapp">WhatsApp</option>
-                        <option value="texter">Texter</option>
-                        <option value="email">Email</option>
-                        <option value="direct">ישיר</option>
-                    </select>
+                    <label>📸 צירוף צילום מסך (אופציונלי):</label>
+                    <div class="screenshot-area" id="screenshotArea">
+                        <div id="noImageState">
+                            📷 גרור קובץ תמונה לכאן או השתמש בכפתורים למטה<br>
+                            <small style="color: #666;">התמונה תוצג למשתמש עם התשובה</small>
+                        </div>
+                        <div id="hasImageState" style="display: none;">
+                            <img id="screenshotPreview" class="screenshot-preview" alt="צילום מסך">
+                            <div>
+                                <button type="button" class="paste-btn remove" onclick="removeScreenshot()">🗑️ הסר תמונה</button>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="file" id="screenshotFile" accept="image/*" style="display: none;">
+                    <div style="text-align: center; margin-top: 10px;">
+                        <button type="button" class="paste-btn" onclick="document.getElementById('screenshotFile').click()">
+                            📁 בחר קובץ
+                        </button>
+                        <button type="button" class="paste-btn" onclick="pasteFromClipboard()">
+                            📋 הדבק מהלוח
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -421,9 +639,18 @@
         // משתנים גלובליים
         let currentUser = null;
         let currentSessionId = null;
+        let screenshotData = null;
         
-        // הגדרות webhook - עדכן כאן את ה-URL שלך!
-        const WEBHOOK_URL = 'https://primary-production-2075.up.railway.app/webhook/search-parts';
+        // הגדרות webhook
+        const CLOUD_ENDPOINTS = {
+            railway: 'https://primary-production-2075.up.railway.app/webhook/search-parts',
+            railwayTest: 'https://primary-production-2075.up.railway.app/webhook-test/search-parts',
+            local: 'http://localhost:5678/webhook/search-parts',
+            custom: ''
+        };
+        
+        let currentMode = 'railway';
+        let WEBHOOK_URL = CLOUD_ENDPOINTS.railway;
         
         // טעינת הדף
         document.addEventListener('DOMContentLoaded', function() {
@@ -461,6 +688,207 @@
                 e.preventDefault();
                 addNewUser();
             });
+            
+            // Screenshot handling
+            setupScreenshotHandling();
+            
+            // Cloud buttons
+            setupCloudButtons();
+        }
+        
+        function setupScreenshotHandling() {
+            // קובץ צילום מסך
+            document.getElementById('screenshotFile').addEventListener('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        setScreenshot(e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Drag & Drop
+            const screenshotArea = document.getElementById('screenshotArea');
+            screenshotArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.style.borderColor = '#667eea';
+                this.style.background = '#f0f4ff';
+            });
+            
+            screenshotArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                this.style.borderColor = '#ddd';
+                this.style.background = '#fafafa';
+            });
+            
+            screenshotArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.style.borderColor = '#ddd';
+                this.style.background = '#fafafa';
+                
+                const files = e.dataTransfer.files;
+                if (files && files[0] && files[0].type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        setScreenshot(e.target.result);
+                    };
+                    reader.readAsDataURL(files[0]);
+                }
+            });
+        }
+        
+        function setupCloudButtons() {
+            // כפתורי מצב
+            document.querySelectorAll('.cloud-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    currentMode = this.dataset.mode;
+                    
+                    // עדכון UI
+                    document.querySelectorAll('.cloud-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // הצגת/הסתרת הגדרות מותאמות
+                    const customConfig = document.getElementById('customConfig');
+                    if (currentMode === 'custom') {
+                        customConfig.classList.add('show');
+                    } else {
+                        customConfig.classList.remove('show');
+                    }
+                    
+                    updateWebhookURL();
+                    localStorage.setItem('webhook_mode', currentMode);
+                });
+            });
+            
+            // שדה URL מותאם
+            document.getElementById('customWebhook').addEventListener('input', function() {
+                const customURL = this.value.trim();
+                localStorage.setItem('custom_webhook_url', customURL);
+                if (currentMode === 'custom') {
+                    WEBHOOK_URL = customURL;
+                }
+            });
+        }
+        
+        function loadSavedSettings() {
+            const savedMode = localStorage.getItem('webhook_mode') || 'railway';
+            const savedCustomURL = localStorage.getItem('custom_webhook_url') || '';
+            
+            currentMode = savedMode;
+            document.getElementById('customWebhook').value = savedCustomURL;
+            
+            // עדכון UI
+            document.querySelectorAll('.cloud-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.mode === currentMode) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            if (currentMode === 'custom') {
+                document.getElementById('customConfig').classList.add('show');
+                WEBHOOK_URL = savedCustomURL || CLOUD_ENDPOINTS.custom;
+            }
+            
+            updateWebhookURL();
+        }
+        
+        function updateWebhookURL() {
+            if (currentMode === 'custom') {
+                WEBHOOK_URL = document.getElementById('customWebhook').value.trim() || '';
+            } else {
+                WEBHOOK_URL = CLOUD_ENDPOINTS[currentMode];
+            }
+            
+            updateConnectionStatus('לא נבדק', false);
+        }
+        
+        async function testConnection() {
+            if (!WEBHOOK_URL || WEBHOOK_URL.trim() === '') {
+                alert('אנא הכנס כתובת Webhook');
+                return;
+            }
+            
+            updateConnectionStatus('בודק חיבור...', false);
+            
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        test: true,
+                        sessionId: currentSessionId,
+                        userId: currentUser ? currentUser.username : 'test'
+                    }),
+                });
+                
+                if (response.ok) {
+                    updateConnectionStatus('מחובר ✓', true);
+                } else {
+                    updateConnectionStatus('שגיאת שרת ⚠️', false);
+                }
+                
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                updateConnectionStatus('שגיאת חיבור ✗', false);
+            }
+        }
+        
+        function updateConnectionStatus(message, isConnected) {
+            document.getElementById('connectionStatus').textContent = message;
+            const indicator = document.getElementById('statusIndicator');
+            
+            if (isConnected) {
+                indicator.className = 'status-indicator status-connected';
+            } else {
+                indicator.className = 'status-indicator status-disconnected';
+            }
+        }
+        
+        async function pasteFromClipboard() {
+            try {
+                const clipboardItems = await navigator.clipboard.read();
+                
+                for (const clipboardItem of clipboardItems) {
+                    for (const type of clipboardItem.types) {
+                        if (type.startsWith('image/')) {
+                            const blob = await clipboardItem.getType(type);
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                setScreenshot(e.target.result);
+                            };
+                            reader.readAsDataURL(blob);
+                            return;
+                        }
+                    }
+                }
+                
+                alert('לא נמצאה תמונה בלוח. אנא העתק תמונה ונסה שוב.');
+                
+            } catch (error) {
+                console.error('Clipboard access failed:', error);
+                alert('לא ניתן לגשת ללוח. אנא השתמש בבחירת קובץ.');
+            }
+        }
+        
+        function setScreenshot(dataUrl) {
+            screenshotData = dataUrl;
+            document.getElementById('screenshotPreview').src = dataUrl;
+            document.getElementById('noImageState').style.display = 'none';
+            document.getElementById('hasImageState').style.display = 'block';
+            document.getElementById('screenshotArea').classList.add('has-image');
+        }
+        
+        function removeScreenshot() {
+            screenshotData = null;
+            document.getElementById('noImageState').style.display = 'block';
+            document.getElementById('hasImageState').style.display = 'none';
+            document.getElementById('screenshotArea').classList.remove('has-image');
+            document.getElementById('screenshotFile').value = '';
         }
         
         function checkExistingLogin() {
@@ -567,6 +995,9 @@
             
             showTab('search');
             
+            // טען הגדרות
+            loadSavedSettings();
+            
             // הצג tab admin רק למנהלים
             if (currentUser.permissions.includes('admin')) {
                 document.getElementById('adminTab').style.display = 'block';
@@ -610,16 +1041,16 @@
             clearStoredSession();
             currentUser = null;
             currentSessionId = null;
+            removeScreenshot();
             showLogin();
         }
         
         async function performSearch() {
             const carNumber = document.getElementById('carNumber').value.trim();
             const partName = document.getElementById('partName').value.trim();
-            const source = document.getElementById('source').value;
             
-            if (!carNumber || !partName || !source) {
-                showError('searchError', 'אנא מלא את כל השדות');
+            if (!carNumber || !partName) {
+                showError('searchError', 'אנא מלא את כל השדות הנדרשים');
                 return;
             }
             
@@ -629,10 +1060,10 @@
                     userId: currentUser.username,
                     userName: currentUser.name,
                     userRole: currentUser.role,
-                    source: source,
                     timestamp: new Date().toISOString(),
                     carNumber: carNumber,
-                    partName: partName
+                    partName: partName,
+                    screenshot: screenshotData || null
                 };
                 
                 console.log('🚀 Sending request:', currentSessionId);
@@ -660,7 +1091,7 @@
                     setTimeout(() => {
                         document.getElementById('carNumber').value = '';
                         document.getElementById('partName').value = '';
-                        document.getElementById('source').value = '';
+                        removeScreenshot();
                         document.getElementById('searchSuccess').style.display = 'none';
                         generateSessionId();
                         document.getElementById('sessionId').textContent = currentSessionId;
