@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>חיפוש חלקי חילוף</title>
+    <title>מערכת חיפוש חלקי חילוף</title>
     <style>
         * {
             margin: 0;
@@ -55,119 +54,52 @@
             border-radius: 20px;
             font-size: 0.9em;
             cursor: pointer;
-        }
-        
-        .user-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background: white;
-            color: #2c3e50;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            min-width: 200px;
             display: none;
-            z-index: 1000;
         }
         
-        .user-dropdown.show {
+        .tabs {
+            display: none;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .tabs.show {
+            display: flex;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .tab:hover {
+            background: #e9ecef;
+        }
+        
+        .tab.active {
+            background: white;
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 40px;
+        }
+        
+        .tab-content.active {
             display: block;
         }
         
-        .user-dropdown-item {
-            padding: 12px 15px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .user-dropdown-item:hover {
-            background: #f8f9fa;
-        }
-        
-        .user-dropdown-item:last-child {
-            border-bottom: none;
-            color: #dc3545;
-        }
-        
-        .session-info {
-            background: #e3f2fd;
-            border: 1px solid #bbdefb;
-            color: #1565c0;
-            padding: 15px 40px;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .session-id {
-            font-family: monospace;
-            background: rgba(102, 126, 234, 0.1);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.9em;
-        }
-        
-        .config-section {
-            padding: 20px 40px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .config-group {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .config-label {
-            font-weight: bold;
-            color: #2c3e50;
-            min-width: 120px;
-        }
-        
-        .config-input {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        
-        .config-btn {
-            padding: 8px 15px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        
-        .config-btn:hover {
-            background: #5a6fd8;
-        }
-        
-        .status-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-left: 10px;
-        }
-        
-        .status-connected {
-            background: #27ae60;
-            box-shadow: 0 0 5px #27ae60;
-        }
-        
-        .status-disconnected {
-            background: #e74c3c;
-        }
-        
-        .form-section {
-            padding: 40px;
+        /* Login Styles */
+        .login-form {
+            max-width: 400px;
+            margin: 0 auto;
         }
         
         .form-group {
@@ -179,12 +111,11 @@
             margin-bottom: 8px;
             font-weight: bold;
             color: #2c3e50;
-            font-size: 1.1em;
         }
         
-        input[type="text"], 
-        select,
-        input[type="file"] {
+        input[type="text"],
+        input[type="password"],
+        select {
             width: 100%;
             padding: 15px;
             border: 2px solid #e0e0e0;
@@ -194,53 +125,21 @@
         }
         
         input[type="text"]:focus,
+        input[type="password"]:focus,
         select:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
         }
         
-        .screenshot-area {
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 15px;
-            transition: all 0.3s ease;
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 25px;
         }
         
-        .screenshot-area:hover {
-            border-color: #667eea;
-            background: #f8f9fa;
-        }
-        
-        .screenshot-area.has-image {
-            border-color: #28a745;
-            background: #d4edda;
-        }
-        
-        .screenshot-preview {
-            max-width: 200px;
-            max-height: 150px;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-        
-        .paste-btn {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 10px;
-        }
-        
-        .paste-btn:hover {
-            background: #218838;
-        }
-        
-        .search-btn {
+        .btn {
             width: 100%;
             padding: 15px;
             background: linear-gradient(45deg, #667eea, #764ba2);
@@ -251,182 +150,173 @@
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-top: 20px;
+            margin-bottom: 10px;
         }
         
-        .search-btn:hover {
+        .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
         
-        .search-btn:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-            transform: none;
+        .btn-danger {
+            background: linear-gradient(45deg, #dc3545, #c82333);
         }
         
-        .info-box {
-            background: #e3f2fd;
-            border: 1px solid #bbdefb;
-            color: #1565c0;
-            padding: 20px;
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #218838);
+        }
+        
+        .btn-small {
+            width: auto;
+            padding: 8px 15px;
+            font-size: 14px;
+            margin: 5px;
+        }
+        
+        /* Admin Panel */
+        .user-list {
+            background: #f8f9fa;
             border-radius: 8px;
-            margin-top: 20px;
-            text-align: center;
+            padding: 20px;
+            margin-bottom: 20px;
         }
         
-        .info-box h3 {
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
             margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         
-        .cloud-options {
+        .user-info {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .user-details {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        
+        .user-actions {
             display: flex;
             gap: 10px;
-            margin-bottom: 15px;
         }
         
-        .cloud-btn {
-            flex: 1;
-            padding: 10px;
-            border: 2px solid #667eea;
-            background: white;
-            color: #667eea;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .cloud-btn.active {
-            background: #667eea;
-            color: white;
-        }
-        
-        .cloud-btn:hover {
-            background: #667eea;
-            color: white;
-        }
-        
-        .custom-config {
-            display: none;
-        }
-        
-        .custom-config.show {
-            display: block;
-        }
-
+        .error-message,
         .success-message {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
             padding: 15px;
             border-radius: 8px;
             margin: 20px 0;
             display: none;
         }
-
+        
         .error-message {
             background: #f8d7da;
             border: 1px solid #f5c6cb;
             color: #721c24;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .session-info {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            color: #1565c0;
             padding: 15px;
             border-radius: 8px;
-            margin: 20px 0;
-            display: none;
+            margin-bottom: 20px;
         }
-
-        .countdown-box {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            color: #856404;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            display: none;
-            text-align: center;
+        
+        .session-id {
+            font-family: monospace;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
         }
-
-        .countdown-timer {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .reset-btn {
-            background: #28a745;
-            margin-top: 15px;
-        }
-
-        .reset-btn:hover {
-            background: #218838;
+        
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔧 חיפוש חלקי חילוף</h1>
-            <p>מערכת חכמה לאיתור חלקי רכב</p>
+            <h1>🔧 מערכת חיפוש חלקי חילוף</h1>
+            <p id="headerSubtitle">מערכת חכמה לאיתור חלקי רכב</p>
             
-            <!-- תפריט משתמש -->
-            <div class="user-badge" onclick="toggleUserDropdown()">
+            <div class="user-badge" id="userBadge">
                 👤 <span id="userDisplayName">משתמש</span>
-                <div class="user-dropdown" id="userDropdown">
-                    <div class="user-dropdown-item">
-                        <strong>שם:</strong> <span id="userFullName"></span>
+            </div>
+        </div>
+        
+        <!-- Tabs -->
+        <div class="tabs" id="tabsContainer">
+            <div class="tab active" onclick="showTab('search')">🔍 חיפוש</div>
+            <div class="tab" id="adminTab" onclick="showTab('admin')" style="display: none;">👥 ניהול משתמשים</div>
+            <div class="tab" onclick="logout()">🚪 התנתק</div>
+        </div>
+        
+        <!-- Login Tab -->
+        <div class="tab-content active" id="loginContent">
+            <div class="login-form">
+                <h2 style="text-align: center; margin-bottom: 30px;">🔐 התחברות למערכת</h2>
+                
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username">שם משתמש:</label>
+                        <input type="text" id="username" name="username" required 
+                               placeholder="הכנס שם משתמש">
                     </div>
-                    <div class="user-dropdown-item">
-                        <strong>תפקיד:</strong> <span id="userRole"></span>
+                    
+                    <div class="form-group">
+                        <label for="password">סיסמה:</label>
+                        <input type="password" id="password" name="password" required 
+                               placeholder="הכנס סיסמה">
                     </div>
-                    <div class="user-dropdown-item">
-                        <strong>הרשאות:</strong> <span id="userPermissions"></span>
+                    
+                    <div class="remember-me">
+                        <input type="checkbox" id="rememberMe" name="rememberMe">
+                        <label for="rememberMe">זכור אותי במחשב זה</label>
                     </div>
-                    <div class="user-dropdown-item" onclick="logout()">
-                        🚪 התנתק
-                    </div>
+                    
+                    <button type="submit" class="btn">🚀 התחבר למערכת</button>
+                </form>
+                
+                <div class="error-message" id="loginError"></div>
+                
+                <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; font-size: 14px;">
+                    <h4>🔑 פרטי התחברות לבדיקה:</h4>
+                    <p><strong>Admin:</strong> admin / admin123</p>
+                    <p><strong>Sales:</strong> sales1 / pass123</p>
+                    <p><strong>Service:</strong> service / service123</p>
                 </div>
             </div>
         </div>
         
-        <!-- מידע Session -->
-        <div class="session-info">
-            <div>
+        <!-- Search Tab -->
+        <div class="tab-content" id="searchContent">
+            <div class="session-info">
                 <strong>🎯 Session ID:</strong> <span class="session-id" id="sessionId">טוען...</span>
-            </div>
-            <div>
-                <strong>📅 התחבר:</strong> <span id="loginTime"></span>
-            </div>
-        </div>
-        
-        <div class="config-section">
-            <div class="config-group">
-                <div class="config-label">🌐 סביבת עבודה:</div>
-                <div class="cloud-options">
-                    <button class="cloud-btn active" data-mode="railway">Railway Main</button>
-                    <button class="cloud-btn" data-mode="railwayTest">Railway Test</button>
-                    <button class="cloud-btn" data-mode="local">Local Server</button>
-                    <button class="cloud-btn" data-mode="custom">מותאם אישית</button>
-                </div>
+                <br>
+                <strong>👤 משתמש:</strong> <span id="currentUserName"></span>
             </div>
             
-            <div class="custom-config" id="customConfig">
-                <div class="config-group">
-                    <div class="config-label">🔗 כתובת Webhook:</div>
-                    <input type="text" class="config-input" id="customWebhook" 
-                           placeholder="https://your-n8n-instance.com/webhook/search-parts">
-                    <button class="config-btn" onclick="testConnection()">בדוק חיבור</button>
-                </div>
-            </div>
-            
-            <div class="config-group">
-                <div class="config-label">📊 סטטוס חיבור:</div>
-                <span id="connectionStatus">לא נבדק</span>
-                <span class="status-indicator status-disconnected" id="statusIndicator"></span>
-            </div>
-        </div>
-        
-        <div class="form-section" id="searchForm">
-            <form id="partsForm">
-                <!-- שדות המשתמש החדשים -->
+            <form id="searchForm">
                 <div class="form-group">
                     <label for="source">מקור הבקשה:</label>
                     <select id="source" name="source" required>
@@ -436,31 +326,6 @@
                         <option value="email">Email</option>
                         <option value="direct">ישיר</option>
                     </select>
-                </div>
-                
-                <!-- אזור צילום מסך -->
-                <div class="form-group">
-                    <label>צילום מסך (אופציונלי):</label>
-                    <div class="screenshot-area" id="screenshotArea">
-                        <div id="noImageState">
-                            📸 גרור קובץ תמונה לכאן או השתמש בכפתורים למטה
-                        </div>
-                        <div id="hasImageState" style="display: none;">
-                            <img id="screenshotPreview" class="screenshot-preview" alt="צילום מסך">
-                            <div>
-                                <button type="button" class="paste-btn" onclick="removeScreenshot()">🗑️ הסר תמונה</button>
-                            </div>
-                        </div>
-                    </div>
-                    <input type="file" id="screenshotFile" accept="image/*" style="display: none;">
-                    <div style="text-align: center; margin-top: 10px;">
-                        <button type="button" class="paste-btn" onclick="document.getElementById('screenshotFile').click()">
-                            📁 בחר קובץ
-                        </button>
-                        <button type="button" class="paste-btn" onclick="pasteFromClipboard()">
-                            📋 הדבק מהלוח
-                        </button>
-                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -475,76 +340,238 @@
                            placeholder="לדוגמא: מדחס, בלם, מנוע">
                 </div>
                 
-                <button type="submit" class="search-btn" id="searchBtn">
-                    🔍 חפש חלקים
-                </button>
+                <button type="submit" class="btn">🔍 חפש חלקים</button>
             </form>
-
-            <div class="success-message" id="successMessage">
-                ✅ החיפוש התחיל! התוצאות יופיעו בחלון החדש.
-            </div>
-
-            <div class="error-message" id="errorMessage">
-                ❌ שגיאה בחיפוש. אנא בדוק את הנתונים ונסה שוב.
-            </div>
-
-            <div class="countdown-box" id="countdownBox">
-                <h3>🔄 החיפוש התחיל!</h3>
-                <p>החלון יוכל להציג תוצאות בעוד כמה שניות.</p>
-                <p>איפוס אוטומטי בעוד: <span class="countdown-timer" id="countdownTimer">15</span> שניות</p>
-                <button type="button" class="search-btn reset-btn" onclick="resetFormNow()">
-                    🔄 איפוס מיידי
-                </button>
+            
+            <div class="success-message" id="searchSuccess"></div>
+            <div class="error-message" id="searchError"></div>
+        </div>
+        
+        <!-- Admin Tab -->
+        <div class="tab-content" id="adminContent">
+            <h2>👥 ניהול משתמשים</h2>
+            
+            <div class="form-group">
+                <h3>➕ הוספת משתמש חדש</h3>
+                <form id="addUserForm">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label for="newUsername">שם משתמש:</label>
+                            <input type="text" id="newUsername" required placeholder="שם משתמש ייחודי">
+                        </div>
+                        <div>
+                            <label for="newPassword">סיסמה:</label>
+                            <input type="password" id="newPassword" required placeholder="סיסמה">
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label for="newName">שם מלא:</label>
+                            <input type="text" id="newName" required placeholder="שם מלא">
+                        </div>
+                        <div>
+                            <label for="newRole">תפקיד:</label>
+                            <select id="newRole" required>
+                                <option value="">בחר תפקיד</option>
+                                <option value="סוכן מכירות">סוכן מכירות</option>
+                                <option value="שירות לקוחות">שירות לקוחות</option>
+                                <option value="מנהל">מנהל</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">➕ הוסף משתמש</button>
+                </form>
             </div>
             
-            <div class="info-box">
-                <h3>📋 איך זה עובד?</h3>
-                <p>מלא את הפרטים ולחץ חפש - חלון חדש ייפתח עם התוצאות</p>
-                <p>המערכת תחפש בבסיס הנתונים ותציג את החלקים המתאימים לבחירה</p>
-                <p>הטופס יתאפס אוטומטית אחרי 15 שניות לחיפוש הבא</p>
+            <div class="user-list" id="usersList">
+                <h3>📋 רשימת משתמשים</h3>
+                <div id="usersContainer"></div>
             </div>
+            
+            <div class="success-message" id="adminSuccess"></div>
+            <div class="error-message" id="adminError"></div>
         </div>
     </div>
 
     <script>
-        // הגדרות קבועות
-        const CLOUD_ENDPOINTS = {
-            railway: 'https://primary-production-2075.up.railway.app/webhook/search-parts',
-            railwayTest: 'https://primary-production-2075.up.railway.app/webhook-test/search-parts',
-            local: 'http://localhost:5678/webhook/search-parts',
-            custom: ''
+        // 🔥 בסיס נתונים משתמשים - נשמר ב-localStorage
+        let USERS_DATABASE = {
+            'admin': {
+                password: 'admin123',
+                name: 'מנהל מערכת',
+                role: 'מנהל',
+                permissions: ['search', 'view_results', 'admin', 'user_management']
+            },
+            'sales1': {
+                password: 'pass123',
+                name: 'סוכן מכירות 1',
+                role: 'סוכן מכירות',
+                permissions: ['search', 'view_results']
+            },
+            'service': {
+                password: 'service123',
+                name: 'שירות לקוחות',
+                role: 'שירות לקוחות', 
+                permissions: ['search', 'view_results', 'customer_support']
+            }
         };
         
-        let currentMode = 'railway';
-        let WEBHOOK_URL = CLOUD_ENDPOINTS.railway;
-        let countdownInterval = null;
+        // משתנים גלובליים
         let currentUser = null;
         let currentSessionId = null;
-        let screenshotData = null;
+        
+        // הגדרות webhook - עדכן כאן את ה-URL שלך!
+        const WEBHOOK_URL = 'https://primary-production-2075.up.railway.app/webhook/search-parts';
         
         // טעינת הדף
         document.addEventListener('DOMContentLoaded', function() {
-            // בדיקת הרשאת גישה
-            if (!requireLogin()) {
-                return;
-            }
-            
-            initializePage();
+            loadUsersDatabase();
+            checkExistingLogin();
+            setupEventListeners();
         });
         
-        function initializePage() {
-            currentUser = getCurrentUser();
+        function loadUsersDatabase() {
+            const savedUsers = localStorage.getItem('users_database');
+            if (savedUsers) {
+                USERS_DATABASE = {...USERS_DATABASE, ...JSON.parse(savedUsers)};
+            }
+        }
+        
+        function saveUsersDatabase() {
+            localStorage.setItem('users_database', JSON.stringify(USERS_DATABASE));
+        }
+        
+        function setupEventListeners() {
+            // Login form
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                performLogin();
+            });
             
-            if (!currentUser) {
-                window.location.href = 'login.html';
+            // Search form
+            document.getElementById('searchForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                performSearch();
+            });
+            
+            // Add user form
+            document.getElementById('addUserForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                addNewUser();
+            });
+        }
+        
+        function checkExistingLogin() {
+            const sessionData = getStoredSession();
+            
+            if (sessionData && isSessionValid(sessionData)) {
+                console.log('🟢 Found valid session:', sessionData.username);
+                currentUser = sessionData;
+                showLoggedIn();
+            } else {
+                console.log('🔴 No valid session found');
+                clearStoredSession();
+                showLogin();
+            }
+        }
+        
+        function performLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            if (!username || !password) {
+                showError('loginError', 'אנא מלא את כל השדות');
                 return;
             }
             
+            if (authenticateUser(username, password)) {
+                const userData = USERS_DATABASE[username];
+                currentUser = createSession(username, userData, rememberMe);
+                
+                console.log('✅ Login successful:', username);
+                showLoggedIn();
+                
+            } else {
+                console.log('❌ Login failed:', username);
+                showError('loginError', 'שם משתמש או סיסמה שגויים');
+            }
+        }
+        
+        function authenticateUser(username, password) {
+            const user = USERS_DATABASE[username];
+            return user && user.password === password;
+        }
+        
+        function createSession(username, userData, rememberMe) {
+            const now = new Date().getTime();
+            const sessionData = {
+                username: username,
+                name: userData.name,
+                role: userData.role,
+                permissions: userData.permissions,
+                loginTime: now,
+                expiryTime: now + (rememberMe ? 30 * 24 * 60 * 60 * 1000 : 8 * 60 * 60 * 1000),
+                rememberMe: rememberMe
+            };
+            
+            const storage = rememberMe ? localStorage : sessionStorage;
+            const storageKey = rememberMe ? 'userSession_persistent' : 'userSession_temporary';
+            
+            storage.setItem(storageKey, JSON.stringify(sessionData));
+            
+            return sessionData;
+        }
+        
+        function getStoredSession() {
+            let sessionData = localStorage.getItem('userSession_persistent');
+            if (sessionData) return JSON.parse(sessionData);
+            
+            sessionData = sessionStorage.getItem('userSession_temporary');
+            if (sessionData) return JSON.parse(sessionData);
+            
+            return null;
+        }
+        
+        function isSessionValid(sessionData) {
+            const now = new Date().getTime();
+            return sessionData.expiryTime > now;
+        }
+        
+        function clearStoredSession() {
+            localStorage.removeItem('userSession_persistent');
+            sessionStorage.removeItem('userSession_temporary');
+        }
+        
+        function showLogin() {
+            document.getElementById('loginContent').classList.add('active');
+            document.getElementById('searchContent').classList.remove('active');
+            document.getElementById('adminContent').classList.remove('active');
+            document.getElementById('tabsContainer').classList.remove('show');
+            document.getElementById('userBadge').style.display = 'none';
+            
+            // נקה שדות
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+        
+        function showLoggedIn() {
             generateSessionId();
             updateUserInterface();
-            loadSavedSettings();
-            updateWebhookURL();
-            setupEventListeners();
+            
+            document.getElementById('loginContent').classList.remove('active');
+            document.getElementById('tabsContainer').classList.add('show');
+            document.getElementById('userBadge').style.display = 'block';
+            
+            showTab('search');
+            
+            // הצג tab admin רק למנהלים
+            if (currentUser.permissions.includes('admin')) {
+                document.getElementById('adminTab').style.display = 'block';
+                updateUsersList();
+            }
         }
         
         function generateSessionId() {
@@ -554,214 +581,61 @@
         }
         
         function updateUserInterface() {
-            // עדכון פרטי המשתמש
             document.getElementById('userDisplayName').textContent = currentUser.name;
-            document.getElementById('userFullName').textContent = currentUser.name;
-            document.getElementById('userRole').textContent = currentUser.role;
-            document.getElementById('userPermissions').textContent = currentUser.permissions.join(', ');
-            
-            // עדכון Session ID
+            document.getElementById('currentUserName').textContent = currentUser.name;
             document.getElementById('sessionId').textContent = currentSessionId;
-            document.getElementById('loginTime').textContent = new Date(currentUser.loginTime).toLocaleString('he-IL');
         }
         
-        function toggleUserDropdown() {
-            const dropdown = document.getElementById('userDropdown');
-            dropdown.classList.toggle('show');
-        }
-        
-        // סגירת dropdown בלחיצה מחוץ לו
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.user-badge')) {
-                document.getElementById('userDropdown').classList.remove('show');
+        function showTab(tabName) {
+            // הסתר את כל התכנים
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // הסתר את כל הטאבים הפעילים
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // הצג התכן הנדרש
+            if (tabName !== 'logout') {
+                document.getElementById(tabName + 'Content').classList.add('active');
+                if (event && event.target) {
+                    event.target.classList.add('active');
+                }
             }
-        });
+        }
         
         function logout() {
-            // נקה session
-            localStorage.removeItem('userSession_persistent');
-            sessionStorage.removeItem('userSession_temporary');
-            
-            // חזור לדף ההתחברות
-            window.location.href = 'login.html';
+            clearStoredSession();
+            currentUser = null;
+            currentSessionId = null;
+            showLogin();
         }
         
-        function loadSavedSettings() {
-            const savedMode = localStorage.getItem('webhook_mode') || 'railway';
-            const savedCustomURL = localStorage.getItem('custom_webhook_url') || '';
-            
-            currentMode = savedMode;
-            document.getElementById('customWebhook').value = savedCustomURL;
-            
-            // עדכון UI
-            document.querySelectorAll('.cloud-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.mode === currentMode) {
-                    btn.classList.add('active');
-                }
-            });
-            
-            if (currentMode === 'custom') {
-                document.getElementById('customConfig').classList.add('show');
-                WEBHOOK_URL = savedCustomURL || CLOUD_ENDPOINTS.custom;
-            }
-        }
-        
-        function setupEventListeners() {
-            // כפתורי מצב
-            document.querySelectorAll('.cloud-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    currentMode = this.dataset.mode;
-                    
-                    // עדכון UI
-                    document.querySelectorAll('.cloud-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    // הצגת/הסתרת הגדרות מותאמות
-                    const customConfig = document.getElementById('customConfig');
-                    if (currentMode === 'custom') {
-                        customConfig.classList.add('show');
-                    } else {
-                        customConfig.classList.remove('show');
-                    }
-                    
-                    updateWebhookURL();
-                    localStorage.setItem('webhook_mode', currentMode);
-                });
-            });
-            
-            // שדה URL מותאם
-            document.getElementById('customWebhook').addEventListener('input', function() {
-                const customURL = this.value.trim();
-                localStorage.setItem('custom_webhook_url', customURL);
-                if (currentMode === 'custom') {
-                    WEBHOOK_URL = customURL;
-                }
-            });
-            
-            // קובץ צילום מסך
-            document.getElementById('screenshotFile').addEventListener('change', function(e) {
-                if (e.target.files && e.target.files[0]) {
-                    const file = e.target.files[0];
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        setScreenshot(e.target.result);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-            
-            // Drag & Drop
-            const screenshotArea = document.getElementById('screenshotArea');
-            screenshotArea.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                this.style.borderColor = '#667eea';
-            });
-            
-            screenshotArea.addEventListener('dragleave', function(e) {
-                e.preventDefault();
-                this.style.borderColor = '#ddd';
-            });
-            
-            screenshotArea.addEventListener('drop', function(e) {
-                e.preventDefault();
-                this.style.borderColor = '#ddd';
-                
-                const files = e.dataTransfer.files;
-                if (files && files[0] && files[0].type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        setScreenshot(e.target.result);
-                    };
-                    reader.readAsDataURL(files[0]);
-                }
-            });
-            
-            // טופס החיפוש
-            document.getElementById('partsForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                if (!WEBHOOK_URL || WEBHOOK_URL.trim() === '') {
-                    showError('אנא הגדר כתובת Webhook תקפה');
-                    return;
-                }
-                
-                await performSearchSafely();
-            });
-        }
-        
-        async function pasteFromClipboard() {
-            try {
-                const clipboardItems = await navigator.clipboard.read();
-                
-                for (const clipboardItem of clipboardItems) {
-                    for (const type of clipboardItem.types) {
-                        if (type.startsWith('image/')) {
-                            const blob = await clipboardItem.getType(type);
-                            const reader = new FileReader();
-                            reader.onload = function(e) {
-                                setScreenshot(e.target.result);
-                            };
-                            reader.readAsDataURL(blob);
-                            return;
-                        }
-                    }
-                }
-                
-                alert('לא נמצאה תמונה בלוח. אנא העתק תמונה ונסה שוב.');
-                
-            } catch (error) {
-                console.error('Clipboard access failed:', error);
-                alert('לא ניתן לגשת ללוח. אנא השתמש בבחירת קובץ.');
-            }
-        }
-        
-        function setScreenshot(dataUrl) {
-            screenshotData = dataUrl;
-            document.getElementById('screenshotPreview').src = dataUrl;
-            document.getElementById('noImageState').style.display = 'none';
-            document.getElementById('hasImageState').style.display = 'block';
-            document.getElementById('screenshotArea').classList.add('has-image');
-        }
-        
-        function removeScreenshot() {
-            screenshotData = null;
-            document.getElementById('noImageState').style.display = 'block';
-            document.getElementById('hasImageState').style.display = 'none';
-            document.getElementById('screenshotArea').classList.remove('has-image');
-            document.getElementById('screenshotFile').value = '';
-        }
-        
-        async function performSearchSafely() {
+        async function performSearch() {
             const carNumber = document.getElementById('carNumber').value.trim();
             const partName = document.getElementById('partName').value.trim();
             const source = document.getElementById('source').value;
             
             if (!carNumber || !partName || !source) {
-                showError('אנא מלא את כל השדות הנדרשים');
+                showError('searchError', 'אנא מלא את כל השדות');
                 return;
             }
             
             try {
-                // 🔥 נתוני הבקשה עם Session Management
                 const requestData = {
-                    // נתוני Session
                     sessionId: currentSessionId,
                     userId: currentUser.username,
                     userName: currentUser.name,
                     userRole: currentUser.role,
                     source: source,
                     timestamp: new Date().toISOString(),
-                    
-                    // נתוני החיפוש
                     carNumber: carNumber,
-                    partName: partName,
-                    
-                    // צילום מסך (אם יש)
-                    screenshot: screenshotData || null
+                    partName: partName
                 };
                 
-                console.log('🚀 Sending request with session:', currentSessionId);
+                console.log('🚀 Sending request:', currentSessionId);
                 
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
@@ -772,7 +646,6 @@
                 });
                 
                 if (response.ok) {
-                    // אם השרת החזיר HTML, פתח חלון חדש עם התוכן
                     const contentType = response.headers.get('content-type');
                     if (contentType && contentType.includes('text/html')) {
                         const htmlContent = await response.text();
@@ -781,8 +654,17 @@
                         newWindow.document.close();
                     }
                     
-                    showSuccess(`החיפוש התחיל! Session: ${currentSessionId.substring(0, 10)}...`);
-                    startCountdown();
+                    showSuccess('searchSuccess', `החיפוש התחיל! Session: ${currentSessionId.substring(0, 10)}...`);
+                    
+                    // איפוס הטופס אחרי 3 שניות
+                    setTimeout(() => {
+                        document.getElementById('carNumber').value = '';
+                        document.getElementById('partName').value = '';
+                        document.getElementById('source').value = '';
+                        document.getElementById('searchSuccess').style.display = 'none';
+                        generateSessionId();
+                        document.getElementById('sessionId').textContent = currentSessionId;
+                    }, 3000);
                     
                 } else {
                     throw new Error(`HTTP ${response.status}`);
@@ -790,142 +672,109 @@
                 
             } catch (error) {
                 console.error('Search failed:', error);
-                showError('שגיאה בחיפוש. אנא נסה שוב.');
+                showError('searchError', 'שגיאה בחיפוש. אנא נסה שוב.');
             }
         }
         
-        function startCountdown() {
-            document.getElementById('countdownBox').style.display = 'block';
+        function addNewUser() {
+            const username = document.getElementById('newUsername').value.trim();
+            const password = document.getElementById('newPassword').value;
+            const name = document.getElementById('newName').value.trim();
+            const role = document.getElementById('newRole').value;
             
-            let timeLeft = 15;
-            const timerElement = document.getElementById('countdownTimer');
-            
-            countdownInterval = setInterval(function() {
-                timeLeft--;
-                timerElement.textContent = timeLeft;
-                
-                if (timeLeft <= 0) {
-                    clearInterval(countdownInterval);
-                    resetFormNow();
-                }
-            }, 1000);
-        }
-        
-        function resetFormNow() {
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-            }
-            
-            // נקה את הטופס אבל השאר את פרטי המשתמש
-            document.getElementById('carNumber').value = '';
-            document.getElementById('partName').value = '';
-            document.getElementById('source').value = '';
-            removeScreenshot();
-            
-            // יצור Session ID חדש לבקשה הבאה
-            generateSessionId();
-            document.getElementById('sessionId').textContent = currentSessionId;
-            
-            // הסתר הודעות
-            document.getElementById('successMessage').style.display = 'none';
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('countdownBox').style.display = 'none';
-            
-            // פוקוס על השדה הראשון
-            document.getElementById('source').focus();
-        }
-        
-        function showSuccess(message) {
-            const successEl = document.getElementById('successMessage');
-            successEl.textContent = '✅ ' + message;
-            successEl.style.display = 'block';
-        }
-        
-        function showError(message) {
-            const errorEl = document.getElementById('errorMessage');
-            errorEl.textContent = '❌ ' + message;
-            errorEl.style.display = 'block';
-            
-            setTimeout(() => {
-                errorEl.style.display = 'none';
-            }, 5000);
-        }
-        
-        function updateWebhookURL() {
-            if (currentMode === 'custom') {
-                WEBHOOK_URL = document.getElementById('customWebhook').value.trim() || '';
-            } else {
-                WEBHOOK_URL = CLOUD_ENDPOINTS[currentMode];
-            }
-            
-            updateConnectionStatus('לא נבדק', false);
-        }
-        
-        async function testConnection() {
-            if (!WEBHOOK_URL || WEBHOOK_URL.trim() === '') {
-                alert('אנא הכנס כתובת Webhook');
+            if (!username || !password || !name || !role) {
+                showError('adminError', 'אנא מלא את כל השדות');
                 return;
             }
             
-            updateConnectionStatus('בודק חיבור...', false);
+            if (USERS_DATABASE[username]) {
+                showError('adminError', 'שם המשתמש כבר קיים');
+                return;
+            }
             
-            try {
-                const response = await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ 
-                        test: true,
-                        sessionId: currentSessionId,
-                        userId: currentUser.username
-                    }),
-                });
-                
-                if (response.ok) {
-                    updateConnectionStatus('מחובר ✓', true);
-                } else {
-                    updateConnectionStatus('שגיאת שרת ⚠️', false);
-                }
-                
-            } catch (error) {
-                console.error('Connection test failed:', error);
-                updateConnectionStatus('שגיאת חיבור ✗', false);
+            // הגדרת הרשאות לפי תפקיד
+            let permissions = ['search', 'view_results'];
+            if (role === 'שירות לקוחות') {
+                permissions.push('customer_support');
+            } else if (role === 'מנהל') {
+                permissions.push('admin', 'user_management');
             }
-        }
-        
-        function updateConnectionStatus(message, isConnected) {
-            document.getElementById('connectionStatus').textContent = message;
-            const indicator = document.getElementById('statusIndicator');
             
-            if (isConnected) {
-                indicator.className = 'status-indicator status-connected';
-            } else {
-                indicator.className = 'status-indicator status-disconnected';
+            USERS_DATABASE[username] = {
+                password: password,
+                name: name,
+                role: role,
+                permissions: permissions
+            };
+            
+            saveUsersDatabase();
+            updateUsersList();
+            
+            // נקה הטופס
+            document.getElementById('addUserForm').reset();
+            
+            showSuccess('adminSuccess', `המשתמש ${name} נוסף בהצלחה!`);
+        }
+        
+        function deleteUser(username) {
+            if (username === 'admin') {
+                showError('adminError', 'לא ניתן למחוק את משתמש הAdmin');
+                return;
+            }
+            
+            if (username === currentUser.username) {
+                showError('adminError', 'לא ניתן למחוק את עצמך');
+                return;
+            }
+            
+            if (confirm(`האם אתה בטוח שברצונך למחוק את המשתמש ${USERS_DATABASE[username].name}?`)) {
+                delete USERS_DATABASE[username];
+                saveUsersDatabase();
+                updateUsersList();
+                showSuccess('adminSuccess', 'המשתמש נמחק בהצלחה');
             }
         }
         
-        // טעינת פונקציות session מדף ההתחברות
-        function getCurrentUser() {
-            const sessionData = localStorage.getItem('userSession_persistent') || sessionStorage.getItem('userSession_temporary');
-            if (sessionData) {
-                const parsed = JSON.parse(sessionData);
-                const now = new Date().getTime();
-                if (parsed.expiryTime > now) {
-                    return parsed;
-                }
-            }
-            return null;
+        function updateUsersList() {
+            const container = document.getElementById('usersContainer');
+            container.innerHTML = '';
+            
+            Object.entries(USERS_DATABASE).forEach(([username, userData]) => {
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                
+                userItem.innerHTML = `
+                    <div class="user-info">
+                        <div class="user-name">${userData.name} (${username})</div>
+                        <div class="user-details">תפקיד: ${userData.role} | הרשאות: ${userData.permissions.join(', ')}</div>
+                    </div>
+                    <div class="user-actions">
+                        ${username !== 'admin' ? `<button class="btn btn-danger btn-small" onclick="deleteUser('${username}')">🗑️ מחק</button>` : '<span style="color: #28a745; font-weight: bold;">👑 Admin</span>'}
+                    </div>
+                `;
+                
+                container.appendChild(userItem);
+            });
         }
         
-        function requireLogin() {
-            const user = getCurrentUser();
-            if (!user) {
-                window.location.href = 'login.html';
-                return false;
-            }
-            return true;
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = '❌ ' + message;
+            element.style.display = 'block';
+            
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = '✅ ' + message;
+            element.style.display = 'block';
+            
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 3000);
         }
     </script>
 </body>
