@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>בדיקה - דף יחיד</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .screen {
+            display: none;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        .tabs {
+            display: none;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tabs.show {
+            display: flex;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab:hover {
+            background: #e9ecef;
+        }
+        
+        .tab.active {
+            background: white;
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .user-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 בדיקת מערכת דף יחיד</h1>
+            <p id="headerStatus">בדיקה איך זה עובד</p>
+        </div>
+        
+        <!-- טאבים - מוסתרים בהתחלה -->
+        <div class="tabs" id="tabsContainer">
+            <div class="tab active" onclick="showScreen('search')">🔍 חיפוש</div>
+            <div class="tab" onclick="showScreen('profile')">👤 פרופיל</div>
+            <div class="tab" onclick="logout()">🚪 התנתק</div>
+        </div>
+        
+        <div class="content">
+            <!-- מסך התחברות -->
+            <div class="screen active" id="loginScreen">
+                <h2>🔐 התחברות</h2>
+                <p>בדוק איך המעבר בין מסכים עובד</p>
+                
+                <input type="text" id="username" placeholder="שם משתמש (נסה: admin)">
+                <input type="password" id="password" placeholder="סיסמה (נסה: 123)">
+                
+                <button onclick="tryLogin()">התחבר</button>
+                
+                <div class="error" id="loginError"></div>
+                
+                <div style="margin-top: 20px; font-size: 14px; color: #666;">
+                    <strong>נסה:</strong><br>
+                    שם משתמש: admin<br>
+                    סיסמה: 123
+                </div>
+            </div>
+            
+            <!-- מסך חיפוש -->
+            <div class="screen" id="searchScreen">
+                <div class="user-info">
+                    <strong>👤 מחובר כ:</strong> <span id="loggedInUser">משתמש</span><br>
+                    <strong>🕒 זמן:</strong> <span id="loginTime">זמן</span>
+                </div>
+                
+                <h2>🔍 חיפוש חלקים</h2>
+                
+                <input type="text" id="carNumber" placeholder="מספר רכב">
+                <input type="text" id="partName" placeholder="שם החלק">
+                
+                <button onclick="performSearch()">חפש</button>
+                
+                <div class="success" id="searchSuccess"></div>
+            </div>
+            
+            <!-- מסך פרופיל -->
+            <div class="screen" id="profileScreen">
+                <div class="user-info">
+                    <strong>👤 שם:</strong> <span id="profileName">משתמש</span><br>
+                    <strong>🕒 התחבר:</strong> <span id="profileTime">זמן</span>
+                </div>
+                
+                <h2>👤 פרופיל משתמש</h2>
+                <p>כאן אפשר להוסיף הגדרות משתמש</p>
+                
+                <button onclick="logout()" style="background: #dc3545;">התנתק</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        
+        function tryLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // בדיקה פשוטה
+            if (username === 'admin' && password === '123') {
+                // התחברות מצליחה!
+                currentUser = {
+                    name: 'מנהל מערכת',
+                    username: username,
+                    loginTime: new Date().toLocaleString('he-IL')
+                };
+                
+                showLoggedIn();
+            } else {
+                // התחברות נכשלה
+                showError('loginError', 'שם משתמש או סיסמה שגויים');
+            }
+        }
+        
+        function showLoggedIn() {
+            // 1. עדכן את המידע במסכים
+            document.getElementById('loggedInUser').textContent = currentUser.name;
+            document.getElementById('loginTime').textContent = currentUser.loginTime;
+            document.getElementById('profileName').textContent = currentUser.name;
+            document.getElementById('profileTime').textContent = currentUser.loginTime;
+            document.getElementById('headerStatus').textContent = `שלום ${currentUser.name}`;
+            
+            // 2. הסתר מסך התחברות והצג טאבים
+            document.getElementById('loginScreen').classList.remove('active');
+            document.getElementById('tabsContainer').classList.add('show');
+            
+            // 3. הצג מסך חיפוש
+            showScreen('search');
+            
+            console.log('✅ התחברות מצליחה! המסך התחלף בלי רענון דף');
+        }
+        
+        function showScreen(screenName) {
+            // הסתר את כל המסכים
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            
+            // הסתר את כל הטאבים הפעילים
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // הצג המסך שנבחר
+            document.getElementById(screenName + 'Screen').classList.add('active');
+            
+            // סמן את הטאב הפעיל
+            event.target.classList.add('active');
+            
+            console.log(`📱 עברנו למסך: ${screenName}`);
+        }
+        
+        function logout() {
+            currentUser = null;
+            
+            // חזור למסך התחברות
+            document.getElementById('tabsContainer').classList.remove('show');
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById('loginScreen').classList.add('active');
+            document.getElementById('headerStatus').textContent = 'בדיקה איך זה עובד';
+            
+            // נקה שדות
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            
+            console.log('🚪 התנתקות - חזרנו למסך התחברות');
+        }
+        
+        function performSearch() {
+            const carNumber = document.getElementById('carNumber').value;
+            const partName = document.getElementById('partName').value;
+            
+            if (carNumber && partName) {
+                showSuccess('searchSuccess', `חיפוש הושלם עבור: ${carNumber} - ${partName}`);
+                
+                // נקה השדות אחרי 2 שניות
+                setTimeout(() => {
+                    document.getElementById('carNumber').value = '';
+                    document.getElementById('partName').value = '';
+                    document.getElementById('searchSuccess').style.display = 'none';
+                }, 2000);
+            }
+        }
+        
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = '❌ ' + message;
+            element.style.display = 'block';
+            
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 3000);
+        }
+        
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = '✅ ' + message;
+            element.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
