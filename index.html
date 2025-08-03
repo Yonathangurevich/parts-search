@@ -4,409 +4,77 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>מערכת חיפוש חלקי חילוף</title>
+    <!-- Same CSS as before -->
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        /* Your existing CSS - keeping it the same */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(45deg, #2c3e50, #34495e); color: white; padding: 30px; text-align: center; position: relative; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 1.1em; }
+        .user-badge { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 20px; font-size: 0.9em; cursor: pointer; display: none; }
+        .tabs { display: none; background: #f8f9fa; border-bottom: 1px solid #e0e0e0; }
+        .tabs.show { display: flex; }
+        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s ease; }
+        .tab:hover { background: #e9ecef; }
+        .tab.active { background: white; border-bottom-color: #667eea; color: #667eea; font-weight: bold; }
+        .tab-content { display: none; padding: 40px; }
+        .tab-content.active { display: block; }
+        .login-form { max-width: 400px; margin: 0 auto; }
+        .form-group { margin-bottom: 25px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #2c3e50; }
+        input[type="text"], input[type="password"], select, textarea { width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; transition: all 0.3s ease; font-family: inherit; }
+        textarea { resize: vertical; min-height: 80px; }
+        input[type="text"]:focus, input[type="password"]:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 10px rgba(102, 126, 234, 0.2); }
+        .remember-me { display: flex; align-items: center; gap: 8px; margin-bottom: 25px; }
+        .btn { width: 100%; padding: 15px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; margin-bottom: 10px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3); }
+        .btn-danger { background: linear-gradient(45deg, #dc3545, #c82333); }
+        .btn-success { background: linear-gradient(45deg, #28a745, #218838); }
+        .btn-small { width: auto; padding: 8px 15px; font-size: 14px; margin: 5px; }
+        .config-section { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 30px; }
+        .config-group { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+        .config-label { font-weight: bold; color: #2c3e50; min-width: 120px; }
+        .config-input { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; min-width: 200px; }
+        .config-btn { padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
+        .config-btn:hover { background: #5a6fd8; }
+        .status-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-left: 10px; }
+        .status-connected { background: #27ae60; box-shadow: 0 0 5px #27ae60; }
+        .status-disconnected { background: #e74c3c; }
+        .cloud-options { display: flex; gap: 10px; flex-wrap: wrap; width: 100%; }
+        .cloud-btn { padding: 8px 15px; border: 2px solid #667eea; background: white; color: #667eea; border-radius: 5px; cursor: pointer; transition: all 0.3s ease; font-size: 14px; }
+        .cloud-btn.active { background: #667eea; color: white; }
+        .cloud-btn:hover { background: #667eea; color: white; }
+        .custom-config { display: none; width: 100%; margin-top: 15px; }
+        .custom-config.show { display: block; }
+        .note-area { background: #f0f8ff; border: 2px solid #d0e7ff; border-radius: 8px; padding: 20px; margin-bottom: 15px; transition: all 0.3s ease; }
+        .note-area:hover { border-color: #667eea; background: #e8f2ff; }
+        .note-area.has-content { border-color: #28a745; background: #f0fff4; }
+        .note-counter { font-size: 12px; color: #666; text-align: left; margin-top: 5px; }
+        .user-list { background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .user-info { flex: 1; }
+        .user-name { font-weight: bold; color: #2c3e50; }
+        .user-details { font-size: 0.9em; color: #6c757d; }
+        .user-actions { display: flex; gap: 10px; }
+        .error-message, .success-message { padding: 15px; border-radius: 8px; margin: 20px 0; display: none; }
+        .error-message { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .success-message { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .session-info { background: #e3f2fd; border: 1px solid #bbdefb; color: #1565c0; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .session-id { font-family: monospace; background: rgba(102, 126, 234, 0.1); padding: 4px 8px; border-radius: 4px; font-size: 0.9em; }
+        .user-id { font-family: monospace; background: rgba(40, 167, 69, 0.1); padding: 4px 8px; border-radius: 4px; font-size: 0.9em; color: #28a745; }
+        .hidden { display: none !important; }
         
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+        /* Admin-only elements styling */
+        .admin-only { display: none; }
+        .admin-only.show { display: block; }
         
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(45deg, #2c3e50, #34495e);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            position: relative;
-        }
-        
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            opacity: 0.9;
-            font-size: 1.1em;
-        }
-        
-        .user-badge {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255,255,255,0.2);
-            padding: 10px 15px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            cursor: pointer;
-            display: none;
-        }
-        
-        .tabs {
-            display: none;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .tabs.show {
-            display: flex;
-        }
-        
-        .tab {
-            flex: 1;
-            padding: 15px;
-            text-align: center;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-        }
-        
-        .tab:hover {
-            background: #e9ecef;
-        }
-        
-        .tab.active {
-            background: white;
-            border-bottom-color: #667eea;
-            color: #667eea;
-            font-weight: bold;
-        }
-        
-        .tab-content {
-            display: none;
-            padding: 40px;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        /* Login Styles */
-        .login-form {
-            max-width: 400px;
-            margin: 0 auto;
-        }
-        
-        .form-group {
-            margin-bottom: 25px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        
-        input[type="text"],
-        input[type="password"],
-        select,
-        textarea {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            font-family: inherit;
-        }
-        
-        textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        
-        input[type="text"]:focus,
-        input[type="password"]:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
-        }
-        
-        .remember-me {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 25px;
-        }
-        
-        .btn {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 10px;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-        
-        .btn-danger {
-            background: linear-gradient(45deg, #dc3545, #c82333);
-        }
-        
-        .btn-success {
-            background: linear-gradient(45deg, #28a745, #218838);
-        }
-        
-        .btn-small {
-            width: auto;
-            padding: 8px 15px;
-            font-size: 14px;
-            margin: 5px;
-        }
-        
-        /* Config Section */
-        .config-section {
-            background: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .config-group {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .config-label {
-            font-weight: bold;
-            color: #2c3e50;
-            min-width: 120px;
-        }
-        
-        .config-input {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-            min-width: 200px;
-        }
-        
-        .config-btn {
-            padding: 8px 15px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        
-        .config-btn:hover {
-            background: #5a6fd8;
-        }
-        
-        .status-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-left: 10px;
-        }
-        
-        .status-connected {
-            background: #27ae60;
-            box-shadow: 0 0 5px #27ae60;
-        }
-        
-        .status-disconnected {
-            background: #e74c3c;
-        }
-        
-        .cloud-options {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            width: 100%;
-        }
-        
-        .cloud-btn {
-            padding: 8px 15px;
-            border: 2px solid #667eea;
-            background: white;
-            color: #667eea;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 14px;
-        }
-        
-        .cloud-btn.active {
-            background: #667eea;
-            color: white;
-        }
-        
-        .cloud-btn:hover {
-            background: #667eea;
-            color: white;
-        }
-        
-        .custom-config {
-            display: none;
-            width: 100%;
-            margin-top: 15px;
-        }
-        
-        .custom-config.show {
-            display: block;
-        }
-        
-        /* Note Area */
-        .note-area {
-            background: #f0f8ff;
-            border: 2px solid #d0e7ff;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            transition: all 0.3s ease;
-        }
-        
-        .note-area:hover {
-            border-color: #667eea;
-            background: #e8f2ff;
-        }
-        
-        .note-area.has-content {
-            border-color: #28a745;
-            background: #f0fff4;
-        }
-        
-        .note-counter {
-            font-size: 12px;
-            color: #666;
-            text-align: left;
-            margin-top: 5px;
-        }
-        
-        /* Admin Panel */
-        .user-list {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .user-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        
-        .user-info {
-            flex: 1;
-        }
-        
-        .user-name {
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        
-        .user-details {
-            font-size: 0.9em;
-            color: #6c757d;
-        }
-        
-        .user-actions {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .error-message,
-        .success-message {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            display: none;
-        }
-        
-        .error-message {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-        }
-        
-        .success-message {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-        }
-        
-        .session-info {
-            background: #e3f2fd;
-            border: 1px solid #bbdefb;
-            color: #1565c0;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        
-        .session-id {
-            font-family: monospace;
-            background: rgba(102, 126, 234, 0.1);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.9em;
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        /* Responsive */
         @media (max-width: 768px) {
-            .config-group {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .config-label {
-                min-width: auto;
-            }
-            
-            .cloud-options {
-                justify-content: center;
-            }
-            
-            .cloud-btn {
-                flex: 1;
-                min-width: 120px;
-            }
+            .config-group { flex-direction: column; align-items: stretch; }
+            .config-label { min-width: auto; }
+            .cloud-options { justify-content: center; }
+            .cloud-btn { flex: 1; min-width: 120px; }
         }
     </style>
 </head>
@@ -424,7 +92,7 @@
         <!-- Tabs -->
         <div class="tabs" id="tabsContainer">
             <div class="tab active" onclick="showTab('search')">🔍 חיפוש</div>
-            <div class="tab" id="adminTab" onclick="showTab('admin')" style="display: none;">👥 ניהול משתמשים</div>
+            <div class="tab admin-only" id="adminTab" onclick="showTab('admin')">👥 ניהול משתמשים</div>
             <div class="tab" onclick="logout()">🚪 התנתק</div>
         </div>
         
@@ -468,8 +136,8 @@
         <!-- Search Tab -->
         <div class="tab-content" id="searchContent">
             <div class="session-info">
-                <strong>🎯 Session ID:</strong> <span class="session-id" id="sessionId">טוען...</span>
-                <br>
+                <strong>🎯 Session ID:</strong> <span class="session-id" id="sessionId">טוען...</span><br>
+                <strong>🆔 User ID:</strong> <span class="user-id" id="permanentUserId">טוען...</span><br>
                 <strong>👤 משתמש:</strong> <span id="currentUserName"></span>
             </div>
             
@@ -502,7 +170,7 @@
             </div>
             
             <form id="searchForm">
-                <!-- הערה אישית במקום צילום מסך -->
+                <!-- הערה אישית -->
                 <div class="form-group">
                     <label for="customerNote">📝 הערה אישית (אופציונלי):</label>
                     <div class="note-area" id="noteArea">
@@ -512,9 +180,6 @@
                                   oninput="updateNoteCounter()"></textarea>
                         <div class="note-counter" id="noteCounter">0/500 תווים</div>
                     </div>
-                    <small style="color: #666; display: block; margin-top: 8px;">
-                        💡 השתמש בתיבה זו כדי לרשום פרטים שיעזרו לך לזכור על מה מדובר כשתקבל את התשובה
-                    </small>
                 </div>
                 
                 <div class="form-group">
@@ -536,8 +201,8 @@
             <div class="error-message" id="searchError"></div>
         </div>
         
-        <!-- Admin Tab -->
-        <div class="tab-content" id="adminContent">
+        <!-- Admin Tab - Only for Admins -->
+        <div class="tab-content admin-only" id="adminContent">
             <h2>👥 ניהול משתמשים</h2>
             
             <div class="form-group">
@@ -585,33 +250,34 @@
     </div>
 
     <script>
-        // 🔥 בסיס נתונים משתמשים - נשמר ב-localStorage
+        // מסד נתונים משתמשים
         let USERS_DATABASE = {
             'admin': {
                 password: 'admin123',
                 name: 'מנהל מערכת',
                 role: 'מנהל',
-                permissions: ['search', 'view_results', 'admin', 'user_management']
+                permissions: ['search', 'view_results', 'admin', 'user_management'],
+                permanentId: 'admin_main_001'
             },
             'sales1': {
                 password: 'pass123',
                 name: 'סוכן מכירות 1',
                 role: 'סוכן מכירות',
-                permissions: ['search', 'view_results']
+                permissions: ['search', 'view_results'],
+                permanentId: 'sales_user_002'
             },
             'service': {
                 password: 'service123',
                 name: 'שירות לקוחות',
                 role: 'שירות לקוחות', 
-                permissions: ['search', 'view_results', 'customer_support']
+                permissions: ['search', 'view_results', 'customer_support'],
+                permanentId: 'service_user_003'
             }
         };
         
-        // משתנים גלובליים
         let currentUser = null;
         let currentSessionId = null;
         
-        // הגדרות webhook
         const CLOUD_ENDPOINTS = {
             railway: 'https://primary-production-2075.up.railway.app/webhook/search-parts',
             railwayTest: 'https://primary-production-2075.up.railway.app/webhook-test/search-parts',
@@ -622,7 +288,6 @@
         let currentMode = 'railway';
         let WEBHOOK_URL = CLOUD_ENDPOINTS.railway;
         
-        // טעינת הדף
         document.addEventListener('DOMContentLoaded', function() {
             loadUsersDatabase();
             checkExistingLogin();
@@ -632,7 +297,14 @@
         function loadUsersDatabase() {
             const savedUsers = localStorage.getItem('users_database');
             if (savedUsers) {
-                USERS_DATABASE = {...USERS_DATABASE, ...JSON.parse(savedUsers)};
+                const saved = JSON.parse(savedUsers);
+                // וודא שכל משתמש יש לו permanentId
+                Object.keys(saved).forEach(username => {
+                    if (!saved[username].permanentId) {
+                        saved[username].permanentId = generatePermanentUserId(username);
+                    }
+                });
+                USERS_DATABASE = {...USERS_DATABASE, ...saved};
             }
         }
         
@@ -640,40 +312,42 @@
             localStorage.setItem('users_database', JSON.stringify(USERS_DATABASE));
         }
         
+        function generatePermanentUserId(username) {
+            let hash = 0;
+            for (let i = 0; i < username.length; i++) {
+                const char = username.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return `user_${Math.abs(hash).toString(36)}_${username.slice(0, 3)}`;
+        }
+        
         function setupEventListeners() {
-            // Login form
             document.getElementById('loginForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 performLogin();
             });
             
-            // Search form
             document.getElementById('searchForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 performSearch();
             });
             
-            // Add user form
             document.getElementById('addUserForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 addNewUser();
             });
             
-            // Cloud buttons
             setupCloudButtons();
         }
         
         function setupCloudButtons() {
-            // כפתורי מצב
             document.querySelectorAll('.cloud-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     currentMode = this.dataset.mode;
-                    
-                    // עדכון UI
                     document.querySelectorAll('.cloud-btn').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                     
-                    // הצגת/הסתרת הגדרות מותאמות
                     const customConfig = document.getElementById('customConfig');
                     if (currentMode === 'custom') {
                         customConfig.classList.add('show');
@@ -686,7 +360,6 @@
                 });
             });
             
-            // שדה URL מותאם
             document.getElementById('customWebhook').addEventListener('input', function() {
                 const customURL = this.value.trim();
                 localStorage.setItem('custom_webhook_url', customURL);
@@ -703,7 +376,6 @@
             currentMode = savedMode;
             document.getElementById('customWebhook').value = savedCustomURL;
             
-            // עדכון UI
             document.querySelectorAll('.cloud-btn').forEach(btn => {
                 btn.classList.remove('active');
                 if (btn.dataset.mode === currentMode) {
@@ -725,7 +397,6 @@
             } else {
                 WEBHOOK_URL = CLOUD_ENDPOINTS[currentMode];
             }
-            
             updateConnectionStatus('לא נבדק', false);
         }
         
@@ -740,13 +411,12 @@
             try {
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         test: true,
                         sessionId: currentSessionId,
-                        userId: currentUser ? currentUser.username : 'test'
+                        userId: currentUser ? currentUser.username : 'test',
+                        permanentUserId: currentUser ? currentUser.permanentId : 'test_user'
                     }),
                 });
                 
@@ -781,14 +451,12 @@
             const currentLength = noteInput.value.length;
             counter.textContent = `${currentLength}/500 תווים`;
             
-            // עדכון סטייל לפי תוכן
             if (currentLength > 0) {
                 noteArea.classList.add('has-content');
             } else {
                 noteArea.classList.remove('has-content');
             }
             
-            // אזהרה אם מתקרבים למגבלה
             if (currentLength > 450) {
                 counter.style.color = '#dc3545';
             } else if (currentLength > 400) {
@@ -824,8 +492,14 @@
             
             if (authenticateUser(username, password)) {
                 const userData = USERS_DATABASE[username];
-                currentUser = createSession(username, userData, rememberMe);
                 
+                // וודא שיש permanentId
+                if (!userData.permanentId) {
+                    userData.permanentId = generatePermanentUserId(username);
+                    saveUsersDatabase();
+                }
+                
+                currentUser = createSession(username, userData, rememberMe);
                 console.log('✅ Login successful:', username);
                 showLoggedIn();
                 
@@ -847,6 +521,7 @@
                 name: userData.name,
                 role: userData.role,
                 permissions: userData.permissions,
+                permanentId: userData.permanentId,
                 loginTime: now,
                 expiryTime: now + (rememberMe ? 30 * 24 * 60 * 60 * 1000 : 8 * 60 * 60 * 1000),
                 rememberMe: rememberMe
@@ -887,7 +562,6 @@
             document.getElementById('tabsContainer').classList.remove('show');
             document.getElementById('userBadge').style.display = 'none';
             
-            // נקה שדות
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
         }
@@ -900,14 +574,20 @@
             document.getElementById('tabsContainer').classList.add('show');
             document.getElementById('userBadge').style.display = 'block';
             
-            showTab('search');
+            // הצג/הסתר אלמנטים של admin
+            const isAdmin = currentUser.permissions.includes('admin');
+            document.querySelectorAll('.admin-only').forEach(element => {
+                if (isAdmin) {
+                    element.classList.add('show');
+                } else {
+                    element.classList.remove('show');
+                }
+            });
             
-            // טען הגדרות
+            showTab('search');
             loadSavedSettings();
             
-            // הצג tab admin רק למנהלים
-            if (currentUser.permissions.includes('admin')) {
-                document.getElementById('adminTab').style.display = 'block';
+            if (isAdmin) {
                 updateUsersList();
             }
         }
@@ -922,20 +602,18 @@
             document.getElementById('userDisplayName').textContent = currentUser.name;
             document.getElementById('currentUserName').textContent = currentUser.name;
             document.getElementById('sessionId').textContent = currentSessionId;
+            document.getElementById('permanentUserId').textContent = currentUser.permanentId;
         }
         
         function showTab(tabName) {
-            // הסתר את כל התכנים
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
             });
             
-            // הסתר את כל הטאבים הפעילים
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.classList.remove('active');
             });
             
-            // הצג התכן הנדרש
             if (tabName !== 'logout') {
                 document.getElementById(tabName + 'Content').classList.add('active');
                 if (event && event.target) {
@@ -962,28 +640,23 @@
             }
             
             try {
-                // הכן נתונים קלים
                 const requestData = {
                     sessionId: currentSessionId,
                     userId: currentUser.username,
+                    userPermanentId: currentUser.permanentId,
                     userName: currentUser.name,
                     userRole: currentUser.role,
                     timestamp: new Date().toISOString(),
                     carNumber: carNumber,
                     partName: partName,
-                    customerNote: customerNote || null // הערה אישית
+                    customerNote: customerNote || null
                 };
                 
-                const dataSize = JSON.stringify(requestData).length;
-                console.log('🚀 Sending request:', currentSessionId);
-                console.log('📦 Total data size:', dataSize, 'characters');
-                console.log('📝 Customer note:', customerNote || 'None');
+                console.log('🚀 Sending request with permanent ID:', currentUser.permanentId);
                 
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(requestData)
                 });
                 
@@ -996,14 +669,13 @@
                         newWindow.document.close();
                     }
                     
-                    showSuccess('searchSuccess', `✅ החיפוש התחיל! Data: ${dataSize} chars`);
+                    showSuccess('searchSuccess', `✅ החיפוש התחיל! User ID: ${currentUser.permanentId}`);
                     
-                    // איפוס הטופס אחרי 3 שניות
                     setTimeout(() => {
                         document.getElementById('carNumber').value = '';
                         document.getElementById('partName').value = '';
                         document.getElementById('customerNote').value = '';
-                        updateNoteCounter(); // עדכן מונה
+                        updateNoteCounter();
                         document.getElementById('searchSuccess').style.display = 'none';
                         generateSessionId();
                         document.getElementById('sessionId').textContent = currentSessionId;
@@ -1020,6 +692,12 @@
         }
         
         function addNewUser() {
+            // וודא שרק admin יכול להוסיף משתמשים
+            if (!currentUser || !currentUser.permissions.includes('admin')) {
+                showError('adminError', 'אין לך הרשאה לבצע פעולה זו');
+                return;
+            }
+            
             const username = document.getElementById('newUsername').value.trim();
             const password = document.getElementById('newPassword').value;
             const name = document.getElementById('newName').value.trim();
@@ -1035,7 +713,6 @@
                 return;
             }
             
-            // הגדרת הרשאות לפי תפקיד
             let permissions = ['search', 'view_results'];
             if (role === 'שירות לקוחות') {
                 permissions.push('customer_support');
@@ -1043,23 +720,29 @@
                 permissions.push('admin', 'user_management');
             }
             
+            const permanentId = generatePermanentUserId(username);
+            
             USERS_DATABASE[username] = {
                 password: password,
                 name: name,
                 role: role,
-                permissions: permissions
+                permissions: permissions,
+                permanentId: permanentId
             };
             
             saveUsersDatabase();
             updateUsersList();
             
-            // נקה הטופס
             document.getElementById('addUserForm').reset();
-            
-            showSuccess('adminSuccess', `המשתמש ${name} נוסף בהצלחה!`);
+            showSuccess('adminSuccess', `המשתמש ${name} נוסף בהצלחה! ID: ${permanentId}`);
         }
         
         function deleteUser(username) {
+            if (!currentUser || !currentUser.permissions.includes('admin')) {
+                showError('adminError', 'אין לך הרשאה לבצע פעולה זו');
+                return;
+            }
+            
             if (username === 'admin') {
                 showError('adminError', 'לא ניתן למחוק את משתמש הAdmin');
                 return;
@@ -1079,6 +762,10 @@
         }
         
         function updateUsersList() {
+            if (!currentUser || !currentUser.permissions.includes('admin')) {
+                return;
+            }
+            
             const container = document.getElementById('usersContainer');
             container.innerHTML = '';
             
@@ -1089,7 +776,10 @@
                 userItem.innerHTML = `
                     <div class="user-info">
                         <div class="user-name">${userData.name} (${username})</div>
-                        <div class="user-details">תפקיד: ${userData.role} | הרשאות: ${userData.permissions.join(', ')}</div>
+                        <div class="user-details">
+                            תפקיד: ${userData.role} | ID: <span class="user-id">${userData.permanentId}</span><br>
+                            סיסמה: ${userData.password} | הרשאות: ${userData.permissions.join(', ')}
+                        </div>
                     </div>
                     <div class="user-actions">
                         ${username !== 'admin' ? `<button class="btn btn-danger btn-small" onclick="deleteUser('${username}')">🗑️ מחק</button>` : '<span style="color: #28a745; font-weight: bold;">👑 Admin</span>'}
