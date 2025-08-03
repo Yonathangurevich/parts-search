@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מערכת חיפוש חלקי חילוף</title>
-    <!-- Same CSS as before -->
+    <title>מערכת חיפוש חלקי חילוף - עם ניטור</title>
     <style>
-        /* Your existing CSS - keeping it the same */
+        /* Your existing CSS + new request tracking styles */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; }
         .header { background: linear-gradient(45deg, #2c3e50, #34495e); color: white; padding: 30px; text-align: center; position: relative; }
         .header h1 { font-size: 2.5em; margin-bottom: 10px; }
         .header p { opacity: 0.9; font-size: 1.1em; }
@@ -30,6 +29,7 @@
         .remember-me { display: flex; align-items: center; gap: 8px; margin-bottom: 25px; }
         .btn { width: 100%; padding: 15px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; margin-bottom: 10px; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3); }
+        .btn:disabled { background: #cccccc; cursor: not-allowed; transform: none; }
         .btn-danger { background: linear-gradient(45deg, #dc3545, #c82333); }
         .btn-success { background: linear-gradient(45deg, #28a745, #218838); }
         .btn-small { width: auto; padding: 8px 15px; font-size: 14px; margin: 5px; }
@@ -65,16 +65,205 @@
         .session-id { font-family: monospace; background: rgba(102, 126, 234, 0.1); padding: 4px 8px; border-radius: 4px; font-size: 0.9em; }
         .user-id { font-family: monospace; background: rgba(40, 167, 69, 0.1); padding: 4px 8px; border-radius: 4px; font-size: 0.9em; color: #28a745; }
         .hidden { display: none !important; }
-        
-        /* Admin-only elements styling */
         .admin-only { display: none; }
         .admin-only.show { display: block; }
-        
+
+        /* 🆕 Request Tracker Styles */
+        .requests-tracker {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .tracker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .tracker-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .tracker-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9em;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .stat-dot.running { background: #ffc107; }
+        .stat-dot.completed { background: #28a745; }
+        .stat-dot.failed { background: #dc3545; }
+
+        .requests-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .request-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .request-item.running {
+            border-left: 4px solid #ffc107;
+            background: #fffbf0;
+        }
+
+        .request-item.completed {
+            border-left: 4px solid #28a745;
+            background: #f0fff4;
+        }
+
+        .request-item.failed {
+            border-left: 4px solid #dc3545;
+            background: #fff5f5;
+        }
+
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .request-id {
+            font-family: monospace;
+            font-size: 0.8em;
+            background: rgba(0,0,0,0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .request-time {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .request-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .request-detail {
+            font-size: 0.9em;
+        }
+
+        .request-detail strong {
+            color: #2c3e50;
+        }
+
+        .request-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .progress-text {
+            font-size: 0.8em;
+            font-weight: bold;
+            min-width: 100px;
+        }
+
+        .request-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .status-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .status-icon.running {
+            background: #ffc107;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-icon.completed {
+            background: #28a745;
+        }
+
+        .status-icon.failed {
+            background: #dc3545;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .elapsed-timer {
+            font-family: monospace;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .clear-completed {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .clear-completed:hover {
+            background: #5a6268;
+        }
+
         @media (max-width: 768px) {
             .config-group { flex-direction: column; align-items: stretch; }
             .config-label { min-width: auto; }
             .cloud-options { justify-content: center; }
             .cloud-btn { flex: 1; min-width: 120px; }
+            .request-details { grid-template-columns: 1fr; }
+            .tracker-stats { flex-direction: column; gap: 10px; }
         }
     </style>
 </head>
@@ -140,6 +329,33 @@
                 <strong>🆔 User ID:</strong> <span class="user-id" id="permanentUserId">טוען...</span><br>
                 <strong>👤 משתמש:</strong> <span id="currentUserName"></span>
             </div>
+
+            <!-- 🆕 Request Tracker -->
+            <div class="requests-tracker">
+                <div class="tracker-header">
+                    <div class="tracker-title">📊 מעקב בקשות בזמן אמת</div>
+                    <div class="tracker-stats">
+                        <div class="stat-item">
+                            <div class="stat-dot running"></div>
+                            <span>בתהליך: <span id="runningCount">0</span></span>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-dot completed"></div>
+                            <span>הושלמו: <span id="completedCount">0</span></span>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-dot failed"></div>
+                            <span>נכשלו: <span id="failedCount">0</span></span>
+                        </div>
+                        <button class="clear-completed" onclick="clearCompletedRequests()">🗑️ נקה הושלמו</button>
+                    </div>
+                </div>
+                <div class="requests-container" id="requestsContainer">
+                    <div style="text-align: center; color: #666; padding: 20px;">
+                        אין בקשות פעילות כרגע
+                    </div>
+                </div>
+            </div>
             
             <!-- הגדרות Webhook -->
             <div class="config-section">
@@ -194,14 +410,14 @@
                            placeholder="לדוגמא: מדחס, בלם, מנוע">
                 </div>
                 
-                <button type="submit" class="btn">🔍 חפש חלקים</button>
+                <button type="submit" class="btn" id="searchButton">🔍 חפש חלקים</button>
             </form>
             
             <div class="success-message" id="searchSuccess"></div>
             <div class="error-message" id="searchError"></div>
         </div>
         
-        <!-- Admin Tab - Only for Admins -->
+        <!-- Admin Tab -->
         <div class="tab-content admin-only" id="adminContent">
             <h2>👥 ניהול משתמשים</h2>
             
@@ -250,7 +466,248 @@
     </div>
 
     <script>
-        // מסד נתונים משתמשים
+        // 🆕 Request Tracking System
+        class RequestTracker {
+            constructor() {
+                this.requests = new Map();
+                this.updateInterval = null;
+                this.init();
+            }
+
+            init() {
+                // טען בקשות מ-localStorage
+                const savedRequests = localStorage.getItem('activeRequests');
+                if (savedRequests) {
+                    const parsed = JSON.parse(savedRequests);
+                    Object.entries(parsed).forEach(([id, data]) => {
+                        this.requests.set(id, {
+                            ...data,
+                            startTime: new Date(data.startTime)
+                        });
+                    });
+                }
+                
+                // התחל עדכון UI
+                this.startUpdating();
+                this.render();
+            }
+
+            addRequest(requestData) {
+                const requestId = requestData.requestId || `req_${Date.now()}`;
+                
+                const request = {
+                    id: requestId,
+                    startTime: new Date(),
+                    status: 'running',
+                    carNumber: requestData.carNumber,
+                    partName: requestData.partName,
+                    customerNote: requestData.customerNote,
+                    userName: requestData.userName,
+                    byparrInstance: 'ממתין...',
+                    progress: 0,
+                    message: 'שולח בקשה...'
+                };
+
+                this.requests.set(requestId, request);
+                this.save();
+                this.render();
+                
+                // סימולציה של התקדמות
+                this.simulateProgress(requestId);
+                
+                return requestId;
+            }
+
+            updateRequest(requestId, updates) {
+                const request = this.requests.get(requestId);
+                if (request) {
+                    Object.assign(request, updates);
+                    this.save();
+                    this.render();
+                }
+            }
+
+            simulateProgress(requestId) {
+                const request = this.requests.get(requestId);
+                if (!request) return;
+
+                const steps = [
+                    { progress: 10, message: 'מתחבר לשרת...', delay: 1000 },
+                    { progress: 25, message: 'בוחר BYPARR instance...', delay: 1500 },
+                    { progress: 40, message: 'שולח לBYPARR...', delay: 2000 },
+                    { progress: 60, message: 'מבצע חיפוש ב-partsouq...', delay: 8000 },
+                    { progress: 80, message: 'מעבד תוצאות...', delay: 3000 },
+                    { progress: 95, message: 'מכין תשובה...', delay: 2000 },
+                    { progress: 100, message: 'הושלם!', delay: 1000 }
+                ];
+
+                let currentStep = 0;
+
+                const processStep = () => {
+                    if (currentStep < steps.length && this.requests.get(requestId)?.status === 'running') {
+                        const step = steps[currentStep];
+                        this.updateRequest(requestId, {
+                            progress: step.progress,
+                            message: step.message
+                        });
+
+                        if (step.progress === 100) {
+                            setTimeout(() => {
+                                this.updateRequest(requestId, {
+                                    status: 'completed',
+                                    message: 'הושלם בהצלחה!'
+                                });
+                            }, step.delay);
+                        } else {
+                            setTimeout(() => {
+                                currentStep++;
+                                processStep();
+                            }, step.delay);
+                        }
+                    }
+                };
+
+                setTimeout(processStep, 500);
+            }
+
+            markFailed(requestId, error) {
+                this.updateRequest(requestId, {
+                    status: 'failed',
+                    progress: 0,
+                    message: `שגיאה: ${error}`
+                });
+            }
+
+            markCompleted(requestId, results) {
+                this.updateRequest(requestId, {
+                    status: 'completed',
+                    progress: 100,
+                    message: 'הושלם בהצלחה!',
+                    results: results
+                });
+            }
+
+            getElapsedTime(request) {
+                const now = new Date();
+                const elapsed = Math.floor((now - request.startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            render() {
+                const container = document.getElementById('requestsContainer');
+                const requests = Array.from(this.requests.values()).sort((a, b) => b.startTime - a.startTime);
+
+                if (requests.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">אין בקשות פעילות כרגע</div>';
+                } else {
+                    container.innerHTML = requests.map(request => this.renderRequest(request)).join('');
+                }
+
+                // עדכן סטטיסטיקות
+                this.updateStats();
+            }
+
+            renderRequest(request) {
+                const elapsed = this.getElapsedTime(request);
+                const statusIcon = {
+                    'running': 'running',
+                    'completed': 'completed',
+                    'failed': 'failed'
+                }[request.status];
+
+                return `
+                    <div class="request-item ${request.status}">
+                        <div class="request-header">
+                            <div class="request-id">${request.id}</div>
+                            <div class="request-time">${request.startTime.toLocaleTimeString('he-IL')}</div>
+                        </div>
+                        
+                        <div class="request-details">
+                            <div class="request-detail">
+                                <strong>רכב:</strong> ${request.carNumber}
+                            </div>
+                            <div class="request-detail">
+                                <strong>חלק:</strong> ${request.partName}
+                            </div>
+                            ${request.customerNote ? `
+                            <div class="request-detail" style="grid-column: 1 / -1;">
+                                <strong>הערה:</strong> ${request.customerNote}
+                            </div>` : ''}
+                        </div>
+
+                        ${request.status === 'running' ? `
+                        <div class="request-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${request.progress}%"></div>
+                            </div>
+                            <div class="progress-text">${request.progress}%</div>
+                        </div>` : ''}
+
+                        <div class="request-status">
+                            <div class="status-icon ${statusIcon}"></div>
+                            <span>${request.message}</span>
+                            <div style="margin-right: auto;">
+                                <span class="elapsed-timer">${elapsed}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            updateStats() {
+                const running = Array.from(this.requests.values()).filter(r => r.status === 'running').length;
+                const completed = Array.from(this.requests.values()).filter(r => r.status === 'completed').length;
+                const failed = Array.from(this.requests.values()).filter(r => r.status === 'failed').length;
+
+                document.getElementById('runningCount').textContent = running;
+                document.getElementById('completedCount').textContent = completed;
+                document.getElementById('failedCount').textContent = failed;
+            }
+
+            clearCompleted() {
+                Array.from(this.requests.keys()).forEach(id => {
+                    const request = this.requests.get(id);
+                    if (request.status === 'completed') {
+                        this.requests.delete(id);
+                    }
+                });
+                this.save();
+                this.render();
+            }
+
+            startUpdating() {
+                if (this.updateInterval) clearInterval(this.updateInterval);
+                
+                this.updateInterval = setInterval(() => {
+                    this.render();
+                }, 1000);
+            }
+
+            stopUpdating() {
+                if (this.updateInterval) {
+                    clearInterval(this.updateInterval);
+                    this.updateInterval = null;
+                }
+            }
+
+            save() {
+                const data = {};
+                this.requests.forEach((request, id) => {
+                    data[id] = {
+                        ...request,
+                        startTime: request.startTime.toISOString()
+                    };
+                });
+                localStorage.setItem('activeRequests', JSON.stringify(data));
+            }
+        }
+
+        // Initialize request tracker
+        let requestTracker;
+
+        // מסד נתונים משתמשים (same as before)
         let USERS_DATABASE = {
             'admin': {
                 password: 'admin123',
@@ -279,8 +736,8 @@
         let currentSessionId = null;
         
         const CLOUD_ENDPOINTS = {
-            railway: 'https://primary-production-d5a2.up.railway.app/webhook/search-parts',
-            railwayTest: 'https://primary-production-d5a2.up.railway.app/webhook-test/search-parts',
+            railway: 'https://primary-production-2075.up.railway.app/webhook/search-parts',
+            railwayTest: 'https://primary-production-2075.up.railway.app/webhook-test/search-parts',
             local: 'http://localhost:5678/webhook/search-parts',
             custom: ''
         };
@@ -292,13 +749,21 @@
             loadUsersDatabase();
             checkExistingLogin();
             setupEventListeners();
+            
+            // Initialize request tracker
+            requestTracker = new RequestTracker();
         });
+
+        // הוסף פונקציה לנקות בקשות הושלמו
+        function clearCompletedRequests() {
+            requestTracker.clearCompleted();
+        }
         
+        // All other existing functions remain the same...
         function loadUsersDatabase() {
             const savedUsers = localStorage.getItem('users_database');
             if (savedUsers) {
                 const saved = JSON.parse(savedUsers);
-                // וודא שכל משתמש יש לו permanentId
                 Object.keys(saved).forEach(username => {
                     if (!saved[username].permanentId) {
                         saved[username].permanentId = generatePermanentUserId(username);
@@ -493,7 +958,6 @@
             if (authenticateUser(username, password)) {
                 const userData = USERS_DATABASE[username];
                 
-                // וודא שיש permanentId
                 if (!userData.permanentId) {
                     userData.permanentId = generatePermanentUserId(username);
                     saveUsersDatabase();
@@ -564,6 +1028,11 @@
             
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
+            
+            // עצור tracking כשלא מחובר
+            if (requestTracker) {
+                requestTracker.stopUpdating();
+            }
         }
         
         function showLoggedIn() {
@@ -574,7 +1043,6 @@
             document.getElementById('tabsContainer').classList.add('show');
             document.getElementById('userBadge').style.display = 'block';
             
-            // הצג/הסתר אלמנטים של admin
             const isAdmin = currentUser.permissions.includes('admin');
             document.querySelectorAll('.admin-only').forEach(element => {
                 if (isAdmin) {
@@ -589,6 +1057,11 @@
             
             if (isAdmin) {
                 updateUsersList();
+            }
+            
+            // התחל tracking כשמחובר
+            if (requestTracker) {
+                requestTracker.startUpdating();
             }
         }
         
@@ -626,6 +1099,12 @@
             clearStoredSession();
             currentUser = null;
             currentSessionId = null;
+            
+            // עצור tracking בlogout
+            if (requestTracker) {
+                requestTracker.stopUpdating();
+            }
+            
             showLogin();
         }
         
@@ -639,6 +1118,12 @@
                 return;
             }
             
+            // כפתור loading state
+            const searchButton = document.getElementById('searchButton');
+            const originalText = searchButton.textContent;
+            searchButton.disabled = true;
+            searchButton.textContent = '🔄 שולח בקשה...';
+            
             try {
                 const requestData = {
                     sessionId: currentSessionId,
@@ -649,10 +1134,14 @@
                     timestamp: new Date().toISOString(),
                     carNumber: carNumber,
                     partName: partName,
-                    customerNote: customerNote || null
+                    customerNote: customerNote || null,
+                    requestId: `${currentUser.username}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`
                 };
                 
-                console.log('🚀 Sending request with permanent ID:', currentUser.permanentId);
+                // 🆕 הוסף לtracker
+                const trackingId = requestTracker.addRequest(requestData);
+                
+                console.log('🚀 Sending request with tracking ID:', trackingId);
                 
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
@@ -669,8 +1158,9 @@
                         newWindow.document.close();
                     }
                     
-                    showSuccess('searchSuccess', `✅ החיפוש התחיל! User ID: ${currentUser.permanentId}`);
+                    showSuccess('searchSuccess', `✅ החיפוש נשלח בהצלחה! מעקב: ${trackingId}`);
                     
+                    // איפוס הטופס
                     setTimeout(() => {
                         document.getElementById('carNumber').value = '';
                         document.getElementById('partName').value = '';
@@ -682,17 +1172,22 @@
                     }, 3000);
                     
                 } else {
+                    // 🆕 סמן כנכשל
+                    requestTracker.markFailed(trackingId, `HTTP ${response.status}`);
                     throw new Error(`HTTP ${response.status}`);
                 }
                 
             } catch (error) {
                 console.error('Search failed:', error);
                 showError('searchError', 'שגיאה בחיפוש. אנא נסה שוב.');
+            } finally {
+                // החזר כפתור למצב רגיל
+                searchButton.disabled = false;
+                searchButton.textContent = originalText;
             }
         }
         
         function addNewUser() {
-            // וודא שרק admin יכול להוסיף משתמשים
             if (!currentUser || !currentUser.permissions.includes('admin')) {
                 showError('adminError', 'אין לך הרשאה לבצע פעולה זו');
                 return;
@@ -812,4 +1307,3 @@
     </script>
 </body>
 </html>
-
