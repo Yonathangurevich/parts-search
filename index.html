@@ -67,14 +67,14 @@
         .admin-only { display: none; }
         .admin-only.show { display: block; }
 
-        /* Search Mode Toggle */
+        /* 🆕 Search Mode Toggle */
         .search-mode-toggle { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 30px; }
         .mode-buttons { display: flex; gap: 10px; margin-bottom: 20px; }
         .mode-btn { padding: 12px 24px; border: 2px solid #667eea; background: white; color: #667eea; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; font-weight: bold; }
         .mode-btn.active { background: #667eea; color: white; }
         .mode-btn:hover { background: #667eea; color: white; }
 
-        /* Multiple Requests Form */
+        /* 🆕 Multiple Requests Form */
         .multiple-requests-form { display: none; }
         .multiple-requests-form.show { display: block; }
         .request-item-container { background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; position: relative; }
@@ -82,7 +82,7 @@
         .request-number { position: absolute; top: -10px; right: 15px; background: #667eea; color: white; padding: 5px 12px; border-radius: 15px; font-weight: bold; font-size: 12px; }
         .request-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
 
-        /* Request Tracker Styles */
+        /* 🆕 Request Tracker Styles */
         .requests-tracker { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 30px; }
         .tracker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #667eea; }
         .tracker-title { font-size: 1.2em; font-weight: bold; color: #2c3e50; }
@@ -157,17 +157,17 @@
             <div class="login-form">
                 <h2 style="text-align: center; margin-bottom: 30px;">🔐 התחברות למערכת</h2>
                 
-                <form id="loginForm" onsubmit="return false;">
+                <form id="loginForm">
                     <div class="form-group">
                         <label for="username">שם משתמש:</label>
                         <input type="text" id="username" name="username" required 
-                               placeholder="הכנס שם משתמש" autocomplete="username">
+                               placeholder="הכנס שם משתמש">
                     </div>
                     
                     <div class="form-group">
                         <label for="password">סיסמה:</label>
                         <input type="password" id="password" name="password" required 
-                               placeholder="הכנס סיסמה" autocomplete="current-password">
+                               placeholder="הכנס סיסמה">
                     </div>
                     
                     <div class="remember-me">
@@ -175,7 +175,7 @@
                         <label for="rememberMe">זכור אותי במחשב זה</label>
                     </div>
                     
-                    <button type="button" class="btn" onclick="performLoginClick()">🚀 התחבר למערכת</button>
+                    <button type="submit" class="btn">🚀 התחבר למערכת</button>
                 </form>
                 
                 <div class="error-message" id="loginError"></div>
@@ -197,7 +197,7 @@
                 <strong>👤 משתמש:</strong> <span id="currentUserName"></span>
             </div>
 
-            <!-- Request Tracker -->
+            <!-- 🆕 Request Tracker -->
             <div class="requests-tracker">
                 <div class="tracker-header">
                     <div class="tracker-title">📊 מעקב בקשות בזמן אמת</div>
@@ -252,7 +252,7 @@
                 </div>
             </div>
 
-            <!-- Search Mode Toggle -->
+            <!-- 🆕 Search Mode Toggle -->
             <div class="search-mode-toggle">
                 <h3 style="margin-bottom: 15px;">🎯 סוג חיפוש</h3>
                 <div class="mode-buttons">
@@ -289,14 +289,13 @@
                 <button type="submit" class="btn" id="singleSearchButton">🔍 חפש חלקים</button>
             </form>
 
-            <!-- Multiple Requests Form -->
+            <!-- 🆕 Multiple Requests Form -->
             <form id="multipleSearchForm" class="multiple-requests-form">
                 <div id="requestsContainer2">
                     <!-- Request items will be generated here -->
                 </div>
                 
                 <div style="display: flex; gap: 15px; margin-top: 20px;">
-                    <button type="button" class="btn btn-success" onclick="addRequestItem()" id="addRequestBtn">➕ הוסף בקשה</button>
                     <button type="submit" class="btn" id="multipleSearchButton">🚀 שלח את כל הבקשות</button>
                 </div>
             </form>
@@ -354,12 +353,11 @@
     </div>
 
     <script>
-        // Request Tracking System
+        // 🆕 Request Tracking System
         class RequestTracker {
             constructor() {
                 this.requests = new Map();
                 this.updateInterval = null;
-                this.responseWebhookUrl = '';
                 this.init();
             }
 
@@ -377,46 +375,6 @@
                 
                 this.startUpdating();
                 this.render();
-                this.setupWebhookListener();
-            }
-
-            setupWebhookListener() {
-                // Create a unique endpoint for receiving webhook responses
-                this.responseWebhookUrl = `/webhook-response/${currentSessionId}`;
-                
-                // Poll for responses every 5 seconds
-                setInterval(() => {
-                    this.checkForResponses();
-                }, 5000);
-            }
-
-            async checkForResponses() {
-                // This would typically poll a backend endpoint for responses
-                // For demo purposes, we'll simulate responses
-                this.requests.forEach((request, requestId) => {
-                    if (request.status === 'running' && request.progress >= 100) {
-                        // Simulate receiving a response after completion
-                        setTimeout(() => {
-                            this.handleWebhookResponse(requestId, {
-                                status: 'completed',
-                                results: 'נמצאו 5 חלקים מתאימים',
-                                data: 'פרטי החלקים...'
-                            });
-                        }, 2000);
-                    }
-                });
-            }
-
-            handleWebhookResponse(requestId, responseData) {
-                const request = this.requests.get(requestId);
-                if (request && request.status === 'running') {
-                    this.updateRequest(requestId, {
-                        status: responseData.status || 'completed',
-                        message: responseData.results || 'הושלם בהצלחה',
-                        responseData: responseData.data,
-                        showResponse: true
-                    });
-                }
             }
 
             addRequest(requestData) {
@@ -491,21 +449,24 @@
                 setTimeout(processStep, 500);
             }
 
+            handleWebhookResponse(requestId, responseData) {
+                const request = this.requests.get(requestId);
+                if (request && request.status === 'running') {
+                    this.updateRequest(requestId, {
+                        status: responseData.status || 'completed',
+                        message: responseData.results || 'הושלם בהצלחה',
+                        responseData: responseData.data,
+                        showResponse: true
+                    });
+                }
+            }
+
             markFailed(requestId, error) {
                 this.updateRequest(requestId, {
                     status: 'failed',
                     progress: 0,
                     message: `שגיאה: ${error}`,
                     byparrInstance: 'נכשל'
-                });
-            }
-
-            markCompleted(requestId, results) {
-                this.updateRequest(requestId, {
-                    status: 'completed',
-                    progress: 100,
-                    message: 'הושלם בהצלחה!',
-                    results: results
                 });
             }
 
@@ -637,12 +598,11 @@
             }
         }
 
-        // Initialize variables
+        // 🆕 Variables
         let requestTracker;
         let currentSearchMode = 'single';
-        let requestItemCount = 1;
 
-        // Users database (preserved from original)
+        // Original Users Database (מהקוד הישן)
         let USERS_DATABASE = {
             'admin': {
                 password: 'admin123',
@@ -680,23 +640,18 @@
         let currentMode = 'railway';
         let WEBHOOK_URL = CLOUD_ENDPOINTS.railway;
         
+        // Initialize (מהקוד הישן)
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 DOM Loaded - Initializing system...');
-            console.log('🚀 Available users in database:', Object.keys(USERS_DATABASE));
-            
             loadUsersDatabase();
-            console.log('🚀 After loading - Available users:', Object.keys(USERS_DATABASE));
-            
             checkExistingLogin();
             setupEventListeners();
             
+            // 🆕 Initialize new features
             requestTracker = new RequestTracker();
             generateMultipleRequestItems();
-            
-            console.log('🚀 System initialization complete');
         });
 
-        // Search Mode Functions
+        // 🆕 New Functions
         function setSearchMode(mode) {
             currentSearchMode = mode;
             
@@ -791,51 +746,6 @@
 
         function clearCompletedRequests() {
             requestTracker.clearCompleted();
-        }
-
-        // Event Listeners Setup
-        function setupEventListeners() {
-            const loginForm = document.getElementById('loginForm');
-            console.log('🔧 Setting up login form listener...', !!loginForm);
-            
-            if (loginForm) {
-                loginForm.addEventListener('submit', function(e) {
-                    console.log('📝 Form submitted - preventing default');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    performLogin();
-                    return false;
-                });
-                
-                // גם הוסף listener לכפתור ישירות
-                const submitButton = loginForm.querySelector('button[type="submit"]');
-                if (submitButton) {
-                    submitButton.addEventListener('click', function(e) {
-                        console.log('🔘 Button clicked - preventing default');
-                        e.preventDefault();
-                        e.stopPropagation();
-                        performLogin();
-                        return false;
-                    });
-                }
-            }
-            
-            document.getElementById('singleSearchForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                performSingleSearch();
-            });
-            
-            document.getElementById('multipleSearchForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                performMultipleSearch();
-            });
-            
-            document.getElementById('addUserForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                addNewUser();
-            });
-            
-            setupCloudButtons();
         }
 
         async function performSingleSearch() {
@@ -971,7 +881,7 @@
             return trackingId;
         }
 
-        // All other existing functions remain the same...
+        // Original Functions (מהקוד הישן - ללא שינוי)
         function loadUsersDatabase() {
             const savedUsers = localStorage.getItem('users_database');
             if (savedUsers) {
@@ -997,6 +907,30 @@
                 hash = hash & hash;
             }
             return `user_${Math.abs(hash).toString(36)}_${username.slice(0, 3)}`;
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                performLogin();
+            });
+            
+            document.getElementById('singleSearchForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                performSingleSearch();
+            });
+            
+            document.getElementById('multipleSearchForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                performMultipleSearch();
+            });
+            
+            document.getElementById('addUserForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                addNewUser();
+            });
+            
+            setupCloudButtons();
         }
         
         function setupCloudButtons() {
@@ -1115,31 +1049,18 @@
             }
         }
         
-        // פונקציה נפרדת לכפתור ההתחברות
-        function performLoginClick() {
-            console.log('🔘 Login button clicked directly');
-            performLogin();
-        }
-
         function performLogin() {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const rememberMe = document.getElementById('rememberMe').checked;
-            
-            console.log('🔐 Attempting login:', username);
-            console.log('🔐 Available users:', Object.keys(USERS_DATABASE));
             
             if (!username || !password) {
                 showError('loginError', 'אנא מלא את כל השדות');
                 return;
             }
             
-            // Clear any previous errors
-            document.getElementById('loginError').style.display = 'none';
-            
             if (authenticateUser(username, password)) {
                 const userData = USERS_DATABASE[username];
-                console.log('✅ User found:', userData);
                 
                 if (!userData.permanentId) {
                     userData.permanentId = generatePermanentUserId(username);
@@ -1151,29 +1072,14 @@
                 showLoggedIn();
                 
             } else {
-                console.log('❌ Login failed for user:', username);
-                console.log('❌ Password provided:', password);
+                console.log('❌ Login failed:', username);
                 showError('loginError', 'שם משתמש או סיסמה שגויים');
             }
         }
         
         function authenticateUser(username, password) {
-            console.log('🔍 Authenticating user:', username);
-            console.log('🔍 Password check for:', password);
-            console.log('🔍 Available users:', Object.keys(USERS_DATABASE));
-            
             const user = USERS_DATABASE[username];
-            console.log('🔍 User data found:', !!user);
-            
-            if (user) {
-                console.log('🔍 Expected password:', user.password);
-                console.log('🔍 Provided password:', password);
-                console.log('🔍 Password match:', user.password === password);
-                return user.password === password;
-            }
-            
-            console.log('❌ User not found in database');
-            return false;
+            return user && user.password === password;
         }
         
         function createSession(username, userData, rememberMe) {
@@ -1427,14 +1333,6 @@
                 requestTracker.handleWebhookResponse(requestId, responseData);
             }
         };
-
-        // Add function to add new request item dynamically
-        function addRequestItem() {
-            if (requestItemCount >= 3) {
-                showError('searchError', 'ניתן להוסיף עד 3 בקשות בלבד');
-                return;
-            }
-            
-            requestItemCount++;
-            generateMultipleRequestItems();
-        }
+    </script>
+</body>
+</html>
