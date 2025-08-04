@@ -456,7 +456,8 @@
                         status: responseData.status || 'completed',
                         message: responseData.results || 'הושלם בהצלחה',
                         responseData: responseData.data,
-                        showResponse: true
+                        showResponse: true,
+                        isHtml: responseData.isHtml || false
                     });
                 }
             }
@@ -499,12 +500,32 @@
                     'failed': 'failed'
                 }[request.status];
 
-                const responseSection = request.showResponse && request.responseData ? `
-                    <div class="response-display show">
-                        <strong>📋 תוצאות החיפוש:</strong>
-                        <div class="response-content">${request.responseData}</div>
-                    </div>
-                ` : '';
+                // 🆕 אזור תוצאות משופר
+                let responseSection = '';
+                if (request.showResponse && request.responseData) {
+                    if (request.isHtml) {
+                        // תוצאות HTML - הצג כפתור לפתיחה
+                        responseSection = `
+                            <div class="response-display show">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <strong>📋 תוצאות החיפוש:</strong>
+                                    <button class="config-btn" onclick="openResultsWindow('${request.id}')">👁️ הצג תוצאות</button>
+                                </div>
+                                <div style="font-size: 0.9em; color: #666;">
+                                    לחץ על "הצג תוצאות" כדי לראות את החלקים שנמצאו
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // תוצאות טקסט רגילות
+                        responseSection = `
+                            <div class="response-display show">
+                                <strong>📋 תוצאות החיפוש:</strong>
+                                <div class="response-content">${request.responseData}</div>
+                            </div>
+                        `;
+                    }
+                }
 
                 return `
                     <div class="request-item ${request.status}">
@@ -850,36 +871,50 @@
             }
         }
 
-        async function sendSearchRequest(requestData) {
-            const requestId = `${currentUser.username}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-            
-            const fullRequestData = {
-                sessionId: currentSessionId,
-                userId: currentUser.username,
-                userPermanentId: currentUser.permanentId,
-                userName: currentUser.name,
-                userRole: currentUser.role,
-                timestamp: new Date().toISOString(),
-                requestId: requestId,
-                responseWebhook: `${window.location.origin}/webhook-response/${requestId}`,
-                ...requestData
-            };
-            
-            const trackingId = requestTracker.addRequest(fullRequestData);
-            
-            const response = await fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(fullRequestData)
-            });
-            
-            if (!response.ok) {
-                requestTracker.markFailed(trackingId, `HTTP ${response.status}`);
-                throw new Error(`HTTP ${response.status}`);
+            async sendSearchRequest(requestData) {
+                const requestId = `${currentUser.username}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+                
+                const fullRequestData = {
+                    sessionId: currentSessionId,
+                    userId: currentUser.username,
+                    userPermanentId: currentUser.permanentId,
+                    userName: currentUser.name,
+                    userRole: currentUser.role,
+                    timestamp: new Date().toISOString(),
+                    requestId: requestId,
+                    responseWebhook: `${window.location.origin}/webhook-response/${requestId}`,
+                    ...requestData
+                };
+                
+                const trackingId = requestTracker.addRequest(fullRequestData);
+                
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(fullRequestData)
+                });
+                
+                if (response.ok) {
+                    // 🆕 אם מקבלים HTML - הצג באתר במקום חלון חדש
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('text/html')) {
+                        const htmlContent = await response.text();
+                        
+                        // הצג את התוצאות ב-request tracker
+                        requestTracker.handleWebhookResponse(requestId, {
+                            status: 'completed',
+                            results: 'נמצאו תוצאות - לחץ לצפייה',
+                            data: htmlContent,
+                            isHtml: true
+                        });
+                    }
+                } else {
+                    requestTracker.markFailed(trackingId, `HTTP ${response.status}`);
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                return trackingId;
             }
-            
-            return trackingId;
-        }
 
         // Original Functions (מהקוד הישן - ללא שינוי)
         function loadUsersDatabase() {
@@ -1325,6 +1360,21 @@
             setTimeout(() => {
                 element.style.display = 'none';
             }, 3000);
+        }
+
+        // 🆕 פונקציה לפתיחת תוצאות בחלון חדש
+        function openResultsWindow(requestId) {
+            const request = requestTracker.requests.get(requestId);
+            if (request && request.responseData) {
+                const newWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+                if (newWindow) {
+                    newWindow.document.write(request.responseData);
+                    newWindow.document.close();
+                    newWindow.document.title = `תוצאות חיפוש - ${request.carNumber} ${request.partName}`;
+                } else {
+                    alert('לא ניתן לפתוח חלון חדש. אנא אפשר חלונות קופצים בדפדפן.');
+                }
+            }
         }
 
         // Webhook Response Handler
