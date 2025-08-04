@@ -1271,4 +1271,115 @@
             
             let permissions = ['search', 'view_results'];
             if (role === 'שירות לקוחות') {
-                permissions.push('
+                permissions.push('customer_support');
+            } else if (role === 'מנהל') {
+                permissions.push('admin', 'user_management');
+            }
+            
+            const permanentId = generatePermanentUserId(username);
+            
+            USERS_DATABASE[username] = {
+                password: password,
+                name: name,
+                role: role,
+                permissions: permissions,
+                permanentId: permanentId
+            };
+            
+            saveUsersDatabase();
+            updateUsersList();
+            
+            document.getElementById('addUserForm').reset();
+            showSuccess('adminSuccess', `המשתמש ${name} נוסף בהצלחה! ID: ${permanentId}`);
+        }
+        
+        function deleteUser(username) {
+            if (!currentUser || !currentUser.permissions.includes('admin')) {
+                showError('adminError', 'אין לך הרשאה לבצע פעולה זו');
+                return;
+            }
+            
+            if (username === 'admin') {
+                showError('adminError', 'לא ניתן למחוק את משתמש הAdmin');
+                return;
+            }
+            
+            if (username === currentUser.username) {
+                showError('adminError', 'לא ניתן למחוק את עצמך');
+                return;
+            }
+            
+            if (confirm(`האם אתה בטוח שברצונך למחוק את המשתמש ${USERS_DATABASE[username].name}?`)) {
+                delete USERS_DATABASE[username];
+                saveUsersDatabase();
+                updateUsersList();
+                showSuccess('adminSuccess', 'המשתמש נמחק בהצלחה');
+            }
+        }
+        
+        function updateUsersList() {
+            if (!currentUser || !currentUser.permissions.includes('admin')) {
+                return;
+            }
+            
+            const container = document.getElementById('usersContainer');
+            container.innerHTML = '';
+            
+            Object.entries(USERS_DATABASE).forEach(([username, userData]) => {
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                
+                userItem.innerHTML = `
+                    <div class="user-info">
+                        <div class="user-name">${userData.name} (${username})</div>
+                        <div class="user-details">
+                            תפקיד: ${userData.role} | ID: <span class="user-id">${userData.permanentId}</span><br>
+                            סיסמה: ${userData.password} | הרשאות: ${userData.permissions.join(', ')}
+                        </div>
+                    </div>
+                    <div class="user-actions">
+                        ${username !== 'admin' ? `<button class="btn btn-danger btn-small" onclick="deleteUser('${username}')">🗑️ מחק</button>` : '<span style="color: #28a745; font-weight: bold;">👑 Admin</span>'}
+                    </div>
+                `;
+                
+                container.appendChild(userItem);
+            });
+        }
+        
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = '❌ ' + message;
+            element.style.display = 'block';
+            
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = '✅ ' + message;
+            element.style.display = 'block';
+            
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 3000);
+        }
+
+        // Webhook Response Handler
+        window.handleWebhookResponse = function(requestId, responseData) {
+            if (requestTracker) {
+                requestTracker.handleWebhookResponse(requestId, responseData);
+            }
+        };
+
+        // Add function to add new request item dynamically
+        function addRequestItem() {
+            if (requestItemCount >= 3) {
+                showError('searchError', 'ניתן להוסיף עד 3 בקשות בלבד');
+                return;
+            }
+            
+            requestItemCount++;
+            generateMultipleRequestItems();
+        }
