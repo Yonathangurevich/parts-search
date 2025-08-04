@@ -262,7 +262,7 @@
             </div>
             
             <!-- Single Search Form -->
-            <form id="singleSearchForm" class="single-search-form">
+            <form id="searchForm" class="single-search-form">
                 <div class="form-group">
                     <label for="customerNote">📝 הערה אישית (אופציונלי):</label>
                     <div class="note-area" id="noteArea">
@@ -286,7 +286,7 @@
                            placeholder="לדוגמא: מדחס, בלם, מנוע">
                 </div>
                 
-                <button type="submit" class="btn" id="singleSearchButton">🔍 חפש חלקים</button>
+                <button type="submit" class="btn" id="searchButton">🔍 חפש חלקים</button>
             </form>
 
             <!-- 🆕 Multiple Requests Form -->
@@ -456,7 +456,8 @@
                         status: responseData.status || 'completed',
                         message: responseData.results || 'הושלם בהצלחה',
                         responseData: responseData.data,
-                        showResponse: true
+                        showResponse: true,
+                        isHtml: responseData.isHtml || false
                     });
                 }
             }
@@ -499,12 +500,32 @@
                     'failed': 'failed'
                 }[request.status];
 
-                const responseSection = request.showResponse && request.responseData ? `
-                    <div class="response-display show">
-                        <strong>📋 תוצאות החיפוש:</strong>
-                        <div class="response-content">${request.responseData}</div>
-                    </div>
-                ` : '';
+                // 🆕 אזור תוצאות משופר
+                let responseSection = '';
+                if (request.showResponse && request.responseData) {
+                    if (request.isHtml) {
+                        // תוצאות HTML - הצג כפתור לפתיחה
+                        responseSection = `
+                            <div class="response-display show">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <strong>📋 תוצאות החיפוש:</strong>
+                                    <button class="config-btn" onclick="openResultsWindow('${request.id}')">👁️ הצג תוצאות</button>
+                                </div>
+                                <div style="font-size: 0.9em; color: #666;">
+                                    לחץ על "הצג תוצאות" כדי לראות את החלקים שנמצאו
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // תוצאות טקסט רגילות
+                        responseSection = `
+                            <div class="response-display show">
+                                <strong>📋 תוצאות החיפוש:</strong>
+                                <div class="response-content">${request.responseData}</div>
+                            </div>
+                        `;
+                    }
+                }
 
                 return `
                     <div class="request-item ${request.status}">
@@ -598,11 +619,12 @@
             }
         }
 
-        // 🆕 Variables
+        // Initialize Variables (מהקוד הישן שעובד)
         let requestTracker;
         let currentSearchMode = 'single';
+        let currentUser = null;
+        let currentSessionId = null;
 
-        // Original Users Database (מהקוד הישן)
         let USERS_DATABASE = {
             'admin': {
                 password: 'admin123',
@@ -627,9 +649,6 @@
             }
         };
         
-        let currentUser = null;
-        let currentSessionId = null;
-        
         const CLOUD_ENDPOINTS = {
             railway: 'https://primary-production-d5a2.up.railway.app/webhook/search-parts',
             railwayTest: 'https://primary-production-d5a2.up.railway.app/webhook-test/search-parts',
@@ -640,7 +659,7 @@
         let currentMode = 'railway';
         let WEBHOOK_URL = CLOUD_ENDPOINTS.railway;
         
-        // Initialize (מהקוד הישן)
+        // Initialize System - מהקוד הישן שעובד!
         document.addEventListener('DOMContentLoaded', function() {
             loadUsersDatabase();
             checkExistingLogin();
@@ -651,7 +670,91 @@
             generateMultipleRequestItems();
         });
 
-        // 🆕 New Functions
+        // 🔧 הוסף פונקציות נחוצות שחסרו מהקוד הישן
+        function performLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            if (!username || !password) {
+                showError('loginError', 'אנא מלא את כל השדות');
+                return;
+            }
+            
+            if (authenticateUser(username, password)) {
+                const userData = USERS_DATABASE[username];
+                
+                if (!userData.permanentId) {
+                    userData.permanentId = generatePermanentUserId(username);
+                    saveUsersDatabase();
+                }
+                
+                currentUser = createSession(username, userData, rememberMe);
+                console.log('✅ Login successful:', username);
+                showLoggedIn();
+                
+            } else {
+                console.log('❌ Login failed:', username);
+                showError('loginError', 'שם משתמש או סיסמה שגויים');
+            }
+        }
+
+        function authenticateUser(username, password) {
+            const user = USERS_DATABASE[username];
+            return user && user.password === password;
+        }
+        
+        function createSession(username, userData, rememberMe) {
+            const now = new Date().getTime();
+            const sessionData = {
+                username: username,
+                name: userData.name,
+                role: userData.role,
+                permissions: userData.permissions,
+                permanentId: userData.permanentId,
+                loginTime: now,
+                expiryTime: now + (rememberMe ? 30 * 24 * 60 * 60 * 1000 : 8 * 60 * 60 * 1000),
+                rememberMe: rememberMe
+            };
+            
+            const storage = rememberMe ? localStorage : sessionStorage;
+            const storageKey = rememberMe ? 'userSession_persistent' : 'userSession_temporary';
+            
+            storage.setItem(storageKey, JSON.stringify(sessionData));
+            
+            return sessionData;
+        }
+
+        function showLoggedIn() {
+            generateSessionId();
+            updateUserInterface();
+            
+            document.getElementById('loginContent').classList.remove('active');
+            document.getElementById('tabsContainer').classList.add('show');
+            document.getElementById('userBadge').style.display = 'block';
+            
+            const isAdmin = currentUser.permissions.includes('admin');
+            document.querySelectorAll('.admin-only').forEach(element => {
+                if (isAdmin) {
+                    element.classList.add('show');
+                } else {
+                    element.classList.remove('show');
+                }
+            });
+            
+            showTab('search');
+            loadSavedSettings();
+            
+            if (isAdmin) {
+                updateUsersList();
+            }
+            
+            if (requestTracker) {
+                requestTracker.startUpdating();
+            }
+        }
+
+        // 🆕 New Functions for Multiple Requests
         function setSearchMode(mode) {
             currentSearchMode = mode;
             
@@ -744,52 +847,6 @@
             }
         }
 
-        function clearCompletedRequests() {
-            requestTracker.clearCompleted();
-        }
-
-        async function performSingleSearch() {
-            const carNumber = document.getElementById('carNumber').value.trim();
-            const partName = document.getElementById('partName').value.trim();
-            const customerNote = document.getElementById('customerNote').value.trim();
-            
-            if (!carNumber || !partName) {
-                showError('searchError', 'אנא מלא את כל השדות הנדרשים');
-                return;
-            }
-            
-            const searchButton = document.getElementById('singleSearchButton');
-            const originalText = searchButton.textContent;
-            searchButton.disabled = true;
-            searchButton.textContent = '🔄 שולח בקשה...';
-            
-            try {
-                await sendSearchRequest({
-                    carNumber,
-                    partName,
-                    customerNote,
-                    requestType: 'single'
-                });
-                
-                showSuccess('searchSuccess', '✅ החיפוש נשלח בהצלחה!');
-                
-                setTimeout(() => {
-                    document.getElementById('carNumber').value = '';
-                    document.getElementById('partName').value = '';
-                    document.getElementById('customerNote').value = '';
-                    updateNoteCounter('customerNote', 'noteCounter', 'noteArea');
-                    document.getElementById('searchSuccess').style.display = 'none';
-                }, 3000);
-                
-            } catch (error) {
-                console.error('Search failed:', error);
-                showError('searchError', 'שגיאה בחיפוש. אנא נסה שוב.');
-            } finally {
-                searchButton.disabled = false;
-                searchButton.textContent = originalText;
-            }
-        }
-
         async function performMultipleSearch() {
             const requests = [];
             
@@ -873,7 +930,21 @@
                 body: JSON.stringify(fullRequestData)
             });
             
-            if (!response.ok) {
+            if (response.ok) {
+                // 🆕 אם מקבלים HTML - הצג באתר
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('text/html')) {
+                    const htmlContent = await response.text();
+                    
+                    // הצג את התוצאות ב-request tracker
+                    requestTracker.handleWebhookResponse(requestId, {
+                        status: 'completed',
+                        results: 'נמצאו תוצאות - לחץ לצפייה',
+                        data: htmlContent,
+                        isHtml: true
+                    });
+                }
+            } else {
                 requestTracker.markFailed(trackingId, `HTTP ${response.status}`);
                 throw new Error(`HTTP ${response.status}`);
             }
@@ -881,7 +952,26 @@
             return trackingId;
         }
 
-        // Original Functions (מהקוד הישן - ללא שינוי)
+        function clearCompletedRequests() {
+            requestTracker.clearCompleted();
+        }
+
+        // 🆕 פונקציה לפתיחת תוצאות בחלון חדש
+        function openResultsWindow(requestId) {
+            const request = requestTracker.requests.get(requestId);
+            if (request && request.responseData) {
+                const newWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+                if (newWindow) {
+                    newWindow.document.write(request.responseData);
+                    newWindow.document.close();
+                    newWindow.document.title = `תוצאות חיפוש - ${request.carNumber} ${request.partName}`;
+                } else {
+                    alert('לא ניתן לפתוח חלון חדש. אנא אפשר חלונות קופצים בדפדפן.');
+                }
+            }
+        }
+
+        // Original Functions from Working Code (כל הפונקציות מהקוד הישן שעובד)
         function loadUsersDatabase() {
             const savedUsers = localStorage.getItem('users_database');
             if (savedUsers) {
@@ -915,9 +1005,9 @@
                 performLogin();
             });
             
-            document.getElementById('singleSearchForm').addEventListener('submit', function(e) {
+            document.getElementById('searchForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                performSingleSearch();
+                performSearch();
             });
             
             document.getElementById('multipleSearchForm').addEventListener('submit', function(e) {
@@ -1049,58 +1139,48 @@
             }
         }
         
-        function performLogin() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            const rememberMe = document.getElementById('rememberMe').checked;
+        async function performSearch() {
+            const carNumber = document.getElementById('carNumber').value.trim();
+            const partName = document.getElementById('partName').value.trim();
+            const customerNote = document.getElementById('customerNote').value.trim();
             
-            if (!username || !password) {
-                showError('loginError', 'אנא מלא את כל השדות');
+            if (!carNumber || !partName) {
+                showError('searchError', 'אנא מלא את כל השדות הנדרשים');
                 return;
             }
             
-            if (authenticateUser(username, password)) {
-                const userData = USERS_DATABASE[username];
+            const searchButton = document.getElementById('searchButton');
+            const originalText = searchButton.textContent;
+            searchButton.disabled = true;
+            searchButton.textContent = '🔄 שולח בקשה...';
+            
+            try {
+                await sendSearchRequest({
+                    carNumber,
+                    partName,
+                    customerNote,
+                    requestType: 'single'
+                });
                 
-                if (!userData.permanentId) {
-                    userData.permanentId = generatePermanentUserId(username);
-                    saveUsersDatabase();
-                }
+                showSuccess('searchSuccess', '✅ החיפוש נשלח בהצלחה!');
                 
-                currentUser = createSession(username, userData, rememberMe);
-                console.log('✅ Login successful:', username);
-                showLoggedIn();
+                setTimeout(() => {
+                    document.getElementById('carNumber').value = '';
+                    document.getElementById('partName').value = '';
+                    document.getElementById('customerNote').value = '';
+                    updateNoteCounter('customerNote', 'noteCounter', 'noteArea');
+                    document.getElementById('searchSuccess').style.display = 'none';
+                    generateSessionId();
+                    document.getElementById('sessionId').textContent = currentSessionId;
+                }, 3000);
                 
-            } else {
-                console.log('❌ Login failed:', username);
-                showError('loginError', 'שם משתמש או סיסמה שגויים');
+            } catch (error) {
+                console.error('Search failed:', error);
+                showError('searchError', 'שגיאה בחיפוש. אנא נסה שוב.');
+            } finally {
+                searchButton.disabled = false;
+                searchButton.textContent = originalText;
             }
-        }
-        
-        function authenticateUser(username, password) {
-            const user = USERS_DATABASE[username];
-            return user && user.password === password;
-        }
-        
-        function createSession(username, userData, rememberMe) {
-            const now = new Date().getTime();
-            const sessionData = {
-                username: username,
-                name: userData.name,
-                role: userData.role,
-                permissions: userData.permissions,
-                permanentId: userData.permanentId,
-                loginTime: now,
-                expiryTime: now + (rememberMe ? 30 * 24 * 60 * 60 * 1000 : 8 * 60 * 60 * 1000),
-                rememberMe: rememberMe
-            };
-            
-            const storage = rememberMe ? localStorage : sessionStorage;
-            const storageKey = rememberMe ? 'userSession_persistent' : 'userSession_temporary';
-            
-            storage.setItem(storageKey, JSON.stringify(sessionData));
-            
-            return sessionData;
         }
         
         function getStoredSession() {
@@ -1135,35 +1215,6 @@
             
             if (requestTracker) {
                 requestTracker.stopUpdating();
-            }
-        }
-        
-        function showLoggedIn() {
-            generateSessionId();
-            updateUserInterface();
-            
-            document.getElementById('loginContent').classList.remove('active');
-            document.getElementById('tabsContainer').classList.add('show');
-            document.getElementById('userBadge').style.display = 'block';
-            
-            const isAdmin = currentUser.permissions.includes('admin');
-            document.querySelectorAll('.admin-only').forEach(element => {
-                if (isAdmin) {
-                    element.classList.add('show');
-                } else {
-                    element.classList.remove('show');
-                }
-            });
-            
-            showTab('search');
-            loadSavedSettings();
-            
-            if (isAdmin) {
-                updateUsersList();
-            }
-            
-            if (requestTracker) {
-                requestTracker.startUpdating();
             }
         }
         
