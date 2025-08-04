@@ -672,8 +672,97 @@
             generateMultipleRequestItems();
         });
 
+        // Initialize Variables
+        let requestTracker;
+        let currentSearchMode = 'single';
+        let currentUser = null;
+        let currentSessionId = null;
+
+        // Users Database
+        let USERS_DATABASE = {
+            'admin': {
+                password: 'admin123',
+                name: 'מנהל מערכת',
+                role: 'מנהל',
+                permissions: ['search', 'view_results', 'admin', 'user_management'],
+                permanentId: 'admin_main_001'
+            },
+            'sales1': {
+                password: 'pass123',
+                name: 'סוכן מכירות 1',
+                role: 'סוכן מכירות',
+                permissions: ['search', 'view_results'],
+                permanentId: 'sales_user_002'
+            },
+            'service': {
+                password: 'service123',
+                name: 'שירות לקוחות',
+                role: 'שירות לקוחות', 
+                permissions: ['search', 'view_results', 'customer_support'],
+                permanentId: 'service_user_003'
+            }
+        };
+        
+        const CLOUD_ENDPOINTS = {
+            railway: 'https://primary-production-d5a2.up.railway.app/webhook/search-parts',
+            railwayTest: 'https://primary-production-d5a2.up.railway.app/webhook-test/search-parts',
+            local: 'http://localhost:5678/webhook/search-parts',
+            custom: ''
+        };
+        
+        let currentMode = 'railway';
+        let WEBHOOK_URL = CLOUD_ENDPOINTS.railway;
+        // Utility Functions
+        function generateSessionId() {
+            const timestamp = new Date().toISOString().replace(/[-:.]/g, '');
+            const random = Math.random().toString(36).substring(2, 8);
+            currentSessionId = `${currentUser.username}_${timestamp}_${random}`;
+        }
+
+        function loadUsersDatabase() {
+            const savedUsers = localStorage.getItem('users_database');
+            if (savedUsers) {
+                const saved = JSON.parse(savedUsers);
+                Object.keys(saved).forEach(username => {
+                    if (!saved[username].permanentId) {
+                        saved[username].permanentId = generatePermanentUserId(username);
+                    }
+                });
+                USERS_DATABASE = {...USERS_DATABASE, ...saved};
+            }
+        }
+
+        function checkExistingLogin() {
+            const sessionData = getStoredSession();
+            
+            if (sessionData && isSessionValid(sessionData)) {
+                console.log('🟢 Found valid session:', sessionData.username);
+                currentUser = sessionData;
+                generateSessionId();
+                showMainInterface();
+            } else {
+                console.log('🔴 No valid session found');
+                clearStoredSession();
+                showLogin();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('loginContent').classList.add('active');
+            document.getElementById('searchContent').classList.remove('active');
+            document.getElementById('adminContent').classList.remove('active');
+            document.getElementById('tabsContainer').classList.remove('show');
+            document.getElementById('userBadge').style.display = 'none';
+            
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            
+            if (requestTracker) {
+                requestTracker.stopUpdating();
+            }
+        }
+
         // 🆕 New Functions
-        function setSearchMode(mode) {
             currentSearchMode = mode;
             
             document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
