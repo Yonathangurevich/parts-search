@@ -1321,16 +1321,225 @@
             }
         }
         
-        function logout() {
-            clearStoredSession();
-            currentUser = null;
-            currentSessionId = null;
+        // Original Functions (complete set)
+        function setupCloudButtons() {
+            document.querySelectorAll('.cloud-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    currentMode = this.dataset.mode;
+                    document.querySelectorAll('.cloud-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const customConfig = document.getElementById('customConfig');
+                    if (currentMode === 'custom') {
+                        customConfig.classList.add('show');
+                    } else {
+                        customConfig.classList.remove('show');
+                    }
+                    
+                    updateWebhookURL();
+                    localStorage.setItem('webhook_mode', currentMode);
+                });
+            });
             
-            if (requestTracker) {
-                requestTracker.stopUpdating();
+            document.getElementById('customWebhook').addEventListener('input', function() {
+                const customURL = this.value.trim();
+                localStorage.setItem('custom_webhook_url', customURL);
+                if (currentMode === 'custom') {
+                    WEBHOOK_URL = customURL;
+                }
+            });
+        }
+        
+        function loadSavedSettings() {
+            const savedMode = localStorage.getItem('webhook_mode') || 'railway';
+            const savedCustomURL = localStorage.getItem('custom_webhook_url') || '';
+            
+            currentMode = savedMode;
+            document.getElementById('customWebhook').value = savedCustomURL;
+            
+            document.querySelectorAll('.cloud-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.mode === currentMode) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            if (currentMode === 'custom') {
+                document.getElementById('customConfig').classList.add('show');
+                WEBHOOK_URL = savedCustomURL || CLOUD_ENDPOINTS.custom;
             }
             
-            showLogin();
+            updateWebhookURL();
+        }
+        
+        function updateWebhookURL() {
+            if (currentMode === 'custom') {
+                WEBHOOK_URL = document.getElementById('customWebhook').value.trim() || '';
+            } else {
+                WEBHOOK_URL = CLOUD_ENDPOINTS[currentMode];
+            }
+            updateConnectionStatus('לא נבדק', false);
+        }
+        
+        async function testConnection() {
+            if (!WEBHOOK_URL || WEBHOOK_URL.trim() === '') {
+                alert('אנא הכנס כתובת Webhook');
+                return;
+            }
+            
+            updateConnectionStatus('בודק חיבור...', false);
+            
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        test: true,
+                        sessionId: currentSessionId,
+                        userId: currentUser ? currentUser.username : 'test',
+                        permanentUserId: currentUser ? currentUser.permanentId : 'test_user'
+                    }),
+                });
+                
+                if (response.ok) {
+                    updateConnectionStatus('מחובר ✓', true);
+                } else {
+                    updateConnectionStatus('שגיאת שרת ⚠️', false);
+                }
+                
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                updateConnectionStatus('שגיאת חיבור ✗', false);
+            }
+        }
+        
+        function updateConnectionStatus(message, isConnected) {
+            document.getElementById('connectionStatus').textContent = message;
+            const indicator = document.getElementById('statusIndicator');
+            
+            if (isConnected) {
+                indicator.className = 'status-indicator status-connected';
+            } else {
+                indicator.className = 'status-indicator status-disconnected';
+            }
+        }
+
+        function addNewUser() {
+            if (!currentUser || !currentUser.permissions.includes('admin')) {
+                showError('adminError', 'אין לך הרשאה לבצע פעולה זו');
+                return;
+            }
+            
+            const username = document.getElementById('newUsername').value.trim();
+            const password = document.getElementById('newPassword').value;
+            const name = document.getElementById('newName').value.trim();
+            const role = document.getElementById('newRole').value;
+            
+            if (!username || !password || !name || !role) {
+                showError('adminError', 'אנא מלא את כל השדות');
+                return;
+            }
+            
+            if (USERS_DATABASE[username]) {
+                showError('adminError', 'שם המשתמש כבר קיים');
+                return;
+            }
+            
+            let permissions = ['search', 'view_results'];
+            if (role === 'שירות לקוחות') {
+                permissions.push('customer_support');
+            } else if (role === 'מנהל') {
+                permissions.push('admin', 'user_management');
+            }
+            
+            const permanentId = generatePermanentUserId(username);
+            
+            USERS_DATABASE[username] = {
+                password: password,
+                name: name,
+                role: role,
+                permissions: permissions,
+                permanentId: permanentId
+            };
+            
+            saveUsersDatabase();
+            updateUsersList();
+            
+            document.getElementById('addUserForm').reset();
+            showSuccess('adminSuccess', `המשתמש ${name} נוסף בהצלחה! ID: ${permanentId}`);
+        }
+        
+        function deleteUser(username) {
+            if (!currentUser || !currentUser.permissions.includes('admin')) {
+                showError('adminError', 'אין לך הרשאה לבצע פעולה זו');
+                return;
+            }
+            
+            if (username === 'admin') {
+                showError('adminError', 'לא ניתן למחוק את משתמש הAdmin');
+                return;
+            }
+            
+            if (username === currentUser.username) {
+                showError('adminError', 'לא ניתן למחוק את עצמך');
+                return;
+            }
+            
+            if (confirm(`האם אתה בטוח שברצונך למחוק את המשתמש ${USERS_DATABASE[username].name}?`)) {
+                delete USERS_DATABASE[username];
+                saveUsersDatabase();
+                updateUsersList();
+                showSuccess('adminSuccess', 'המשתמש נמחק בהצלחה');
+            }
+        }
+        
+        function updateUsersList() {
+            if (!currentUser || !currentUser.permissions.includes('admin')) {
+                return;
+            }
+            
+            const container = document.getElementById('usersContainer');
+            container.innerHTML = '';
+            
+            Object.entries(USERS_DATABASE).forEach(([username, userData]) => {
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                
+                userItem.innerHTML = `
+                    <div class="user-info">
+                        <div class="user-name">${userData.name} (${username})</div>
+                        <div class="user-details">
+                            תפקיד: ${userData.role} | ID: <span class="user-id">${userData.permanentId}</span><br>
+                            סיסמה: ${userData.password} | הרשאות: ${userData.permissions.join(', ')}
+                        </div>
+                    </div>
+                    <div class="user-actions">
+                        ${username !== 'admin' ? `<button class="btn btn-danger btn-small" onclick="deleteUser('${username}')">🗑️ מחק</button>` : '<span style="color: #28a745; font-weight: bold;">👑 Admin</span>'}
+                    </div>
+                `;
+                
+                container.appendChild(userItem);
+            });
+        }
+        
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = '❌ ' + message;
+            element.style.display = 'block';
+            
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = '✅ ' + message;
+            element.style.display = 'block';
+            
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 3000);
         }
         
         function addNewUser() {
