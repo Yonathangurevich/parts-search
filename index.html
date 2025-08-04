@@ -681,12 +681,19 @@
         let WEBHOOK_URL = CLOUD_ENDPOINTS.railway;
         
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 DOM Loaded - Initializing system...');
+            console.log('🚀 Available users in database:', Object.keys(USERS_DATABASE));
+            
             loadUsersDatabase();
+            console.log('🚀 After loading - Available users:', Object.keys(USERS_DATABASE));
+            
             checkExistingLogin();
             setupEventListeners();
             
             requestTracker = new RequestTracker();
             generateMultipleRequestItems();
+            
+            console.log('🚀 System initialization complete');
         });
 
         // Search Mode Functions
@@ -1093,13 +1100,20 @@
             const password = document.getElementById('password').value;
             const rememberMe = document.getElementById('rememberMe').checked;
             
+            console.log('🔐 Attempting login:', username);
+            console.log('🔐 Available users:', Object.keys(USERS_DATABASE));
+            
             if (!username || !password) {
                 showError('loginError', 'אנא מלא את כל השדות');
                 return;
             }
             
+            // Clear any previous errors
+            document.getElementById('loginError').style.display = 'none';
+            
             if (authenticateUser(username, password)) {
                 const userData = USERS_DATABASE[username];
+                console.log('✅ User found:', userData);
                 
                 if (!userData.permanentId) {
                     userData.permanentId = generatePermanentUserId(username);
@@ -1111,14 +1125,29 @@
                 showLoggedIn();
                 
             } else {
-                console.log('❌ Login failed:', username);
+                console.log('❌ Login failed for user:', username);
+                console.log('❌ Password provided:', password);
                 showError('loginError', 'שם משתמש או סיסמה שגויים');
             }
         }
         
         function authenticateUser(username, password) {
+            console.log('🔍 Authenticating user:', username);
+            console.log('🔍 Password check for:', password);
+            console.log('🔍 Available users:', Object.keys(USERS_DATABASE));
+            
             const user = USERS_DATABASE[username];
-            return user && user.password === password;
+            console.log('🔍 User data found:', !!user);
+            
+            if (user) {
+                console.log('🔍 Expected password:', user.password);
+                console.log('🔍 Provided password:', password);
+                console.log('🔍 Password match:', user.password === password);
+                return user.password === password;
+            }
+            
+            console.log('❌ User not found in database');
+            return false;
         }
         
         function createSession(username, userData, rememberMe) {
