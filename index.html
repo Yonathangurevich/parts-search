@@ -157,17 +157,17 @@
             <div class="login-form">
                 <h2 style="text-align: center; margin-bottom: 30px;">🔐 התחברות למערכת</h2>
                 
-                <form id="loginForm">
+                <form id="loginForm" onsubmit="return false;">
                     <div class="form-group">
                         <label for="username">שם משתמש:</label>
                         <input type="text" id="username" name="username" required 
-                               placeholder="הכנס שם משתמש">
+                               placeholder="הכנס שם משתמש" autocomplete="username">
                     </div>
                     
                     <div class="form-group">
                         <label for="password">סיסמה:</label>
                         <input type="password" id="password" name="password" required 
-                               placeholder="הכנס סיסמה">
+                               placeholder="הכנס סיסמה" autocomplete="current-password">
                     </div>
                     
                     <div class="remember-me">
@@ -175,7 +175,7 @@
                         <label for="rememberMe">זכור אותי במחשב זה</label>
                     </div>
                     
-                    <button type="submit" class="btn">🚀 התחבר למערכת</button>
+                    <button type="button" class="btn" onclick="performLoginClick()">🚀 התחבר למערכת</button>
                 </form>
                 
                 <div class="error-message" id="loginError"></div>
@@ -795,10 +795,30 @@
 
         // Event Listeners Setup
         function setupEventListeners() {
-            document.getElementById('loginForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                performLogin();
-            });
+            const loginForm = document.getElementById('loginForm');
+            console.log('🔧 Setting up login form listener...', !!loginForm);
+            
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(e) {
+                    console.log('📝 Form submitted - preventing default');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    performLogin();
+                    return false;
+                });
+                
+                // גם הוסף listener לכפתור ישירות
+                const submitButton = loginForm.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.addEventListener('click', function(e) {
+                        console.log('🔘 Button clicked - preventing default');
+                        e.preventDefault();
+                        e.stopPropagation();
+                        performLogin();
+                        return false;
+                    });
+                }
+            }
             
             document.getElementById('singleSearchForm').addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -1095,6 +1115,12 @@
             }
         }
         
+        // פונקציה נפרדת לכפתור ההתחברות
+        function performLoginClick() {
+            console.log('🔘 Login button clicked directly');
+            performLogin();
+        }
+
         function performLogin() {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
