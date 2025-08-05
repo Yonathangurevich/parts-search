@@ -692,7 +692,6 @@
         // Variables
         let currentUser = null;
         let requestTrackers = new Map();
-        let activeByparrs = new Set(); // Track active BYPARR instances
         
         // BYPARR Access Mapping
         const DEFAULT_BYPARR_ACCESS = {
@@ -740,7 +739,6 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             loadUsersDatabase();
-            loadActiveRequests(); // Load saved requests
             checkExistingLogin();
             setupEventListeners();
         });
@@ -890,19 +888,11 @@
             const requests = [];
             const byparrNumbers = currentUser.byparrAccess || [1, 2, 3];
             
-            // Check each column for input
-            for (let index = 0; index < byparrNumbers.length; index++) {
+            byparrNumbers.forEach((byparrNum, index) => {
                 const columnNum = index + 1;
-                const byparrNum = byparrNumbers[index];
                 const carNumber = document.getElementById(`carNumber${columnNum}`).value.trim();
                 const partName = document.getElementById(`partName${columnNum}`).value.trim();
                 const customerNote = document.getElementById(`customerNote${columnNum}`).value.trim();
-                
-                // Skip if BYPARR is already active
-                if (activeByparrs.has(byparrNum) && (carNumber || partName)) {
-                    showError('searchError', `BYPARR-${byparrNum} כבר פעיל! המתן לסיום הבקשה הקודמת`);
-                    continue;
-                }
                 
                 if (carNumber && partName) {
                     requests.push({
@@ -913,10 +903,11 @@
                         customerNote
                     });
                 }
-            }
+            });
             
             if (requests.length === 0) {
-                return; // No error message - allow empty submissions
+                showError('searchError', 'אנא מלא לפחות בקשה אחת');
+                return;
             }
             
             const searchButton = document.getElementById('searchButton');
@@ -986,16 +977,15 @@
                 
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
-                // Handle response - DO NOT open window automatically
+                // Handle response
                 const contentType = response.headers.get('content-type');
                 if (contentType && contentType.includes('text/html')) {
                     const htmlContent = await response.text();
                     
-                    // Just update status and store content - NO automatic window opening
-                    updateTrackingStatus(requestData.columnNumber, requestId, 'completed', '✅ הושלם - לחץ לפתיחה', htmlContent);
+                    // Store HTML content instead of opening immediately
+                    updateTrackingStatus(requestData.columnNumber, requestId, 'completed', 'הושלם - לחץ לפתיחה', htmlContent);
                 } else {
-                    const jsonResponse = await response.json();
-                    updateTrackingStatus(requestData.columnNumber, requestId, 'completed', '✅ הושלם בהצלחה', JSON.stringify(jsonResponse));
+                    updateTrackingStatus(requestData.columnNumber, requestId, 'completed', 'הושלם בהצלחה');
                 }
                 
             } catch (error) {
@@ -1032,25 +1022,11 @@
                 </div>
             `;
             
-            // Store request data with status
+            // Store request data
             if (!requestTrackers.has(columnNumber)) {
                 requestTrackers.set(columnNumber, new Map());
             }
-            const trackerData = {
-                ...data,
-                status: 'running',
-                statusMessage: 'שולח בקשה...',
-                progress: 0
-            };
-            requestTrackers.get(columnNumber).set(data.requestId, trackerData);
-            
-            // Mark BYPARR as active
-            const byparrNum = currentUser.byparrAccess[columnNumber - 1];
-            activeByparrs.add(byparrNum);
-            updateColumnState(columnNumber);
-            
-            // Save state
-            saveActiveRequests();
+            requestTrackers.get(columnNumber).set(data.requestId, data);
             
             // Clear placeholder if exists
             if (container.querySelector('div[style*="text-align: center"]')) {
@@ -1066,23 +1042,10 @@
             if (item) {
                 item.remove();
                 
-                // Clean up from trackers and update BYPARR state
-                let columnToUpdate = null;
-                requestTrackers.forEach((tracker, columnNumber) => {
-                    if (tracker.has(requestId)) {
-                        tracker.delete(requestId);
-                        columnToUpdate = columnNumber;
-                        
-                        // Check if this was the last request for this BYPARR
-                        if (tracker.size === 0) {
-                            const byparrNum = currentUser.byparrAccess[columnNumber - 1];
-                            activeByparrs.delete(byparrNum);
-                            updateColumnState(columnNumber);
-                        }
-                    }
+                // Clean up from trackers
+                requestTrackers.forEach((tracker) => {
+                    tracker.delete(requestId);
                 });
-                
-                saveActiveRequests();
             }
         }
         
@@ -1101,16 +1064,13 @@
                 item.querySelector('.progress-bar').style.display = 'none';
             }
             
-            // Update tracker data
-            const tracker = requestTrackers.get(columnNumber);
-            if (tracker && tracker.has(requestId)) {
-                const data = tracker.get(requestId);
-                data.status = status;
-                data.statusMessage = message;
-                
-                // Store response data if completed
-                if (status === 'completed' && responseData) {
+            // Store response data if completed
+            if (status === 'completed' && responseData) {
+                const tracker = requestTrackers.get(columnNumber);
+                if (tracker && tracker.has(requestId)) {
+                    const data = tracker.get(requestId);
                     data.responseData = responseData;
+                    tracker.set(requestId, data);
                     
                     // Show result button
                     const resultArea = item.querySelector('.result-area');
@@ -1120,26 +1080,6 @@
                         button.onclick = () => openResultWindow(requestId, columnNumber);
                     }
                 }
-                
-                // If completed or failed, remove from active BYPARRs
-                if (status === 'completed' || status === 'failed') {
-                    // Check if this is the last active request for this BYPARR
-                    let hasOtherActive = false;
-                    tracker.forEach((req, id) => {
-                        if (id !== requestId && req.status === 'running') {
-                            hasOtherActive = true;
-                        }
-                    });
-                    
-                    if (!hasOtherActive) {
-                        const byparrNum = currentUser.byparrAccess[columnNumber - 1];
-                        activeByparrs.delete(byparrNum);
-                        updateColumnState(columnNumber);
-                    }
-                }
-                
-                tracker.set(requestId, data);
-                saveActiveRequests();
             }
         }
         
@@ -1172,15 +1112,6 @@
                     if (progressBar) {
                         progressBar.style.width = `${progress}%`;
                     }
-                    
-                    // Update saved progress
-                    const tracker = requestTrackers.get(columnNumber);
-                    if (tracker && tracker.has(requestId)) {
-                        const data = tracker.get(requestId);
-                        data.progress = progress;
-                        tracker.set(requestId, data);
-                        saveActiveRequests();
-                    }
                 }
                 
                 if (progress >= 95) {
@@ -1189,153 +1120,11 @@
             }, 500);
         }
         
-        // Save and Load Active Requests
-        function saveActiveRequests() {
-            const requestsData = {};
-            requestTrackers.forEach((tracker, columnNumber) => {
-                requestsData[columnNumber] = {};
-                tracker.forEach((data, requestId) => {
-                    requestsData[columnNumber][requestId] = {
-                        ...data,
-                        startTime: data.startTime.toISOString()
-                    };
-                });
-            });
-            
-            const activeByparrsArray = Array.from(activeByparrs);
-            
-            localStorage.setItem('activeRequests', JSON.stringify(requestsData));
-            localStorage.setItem('activeByparrs', JSON.stringify(activeByparrsArray));
-        }
-        
-        function loadActiveRequests() {
-            try {
-                // Load request trackers
-                const savedRequests = localStorage.getItem('activeRequests');
-                if (savedRequests) {
-                    const requestsData = JSON.parse(savedRequests);
-                    Object.entries(requestsData).forEach(([columnNumber, requests]) => {
-                        const tracker = new Map();
-                        Object.entries(requests).forEach(([requestId, data]) => {
-                            tracker.set(requestId, {
-                                ...data,
-                                startTime: new Date(data.startTime)
-                            });
-                        });
-                        requestTrackers.set(parseInt(columnNumber), tracker);
-                    });
-                }
-                
-                // Load active BYPARRs
-                const savedByparrs = localStorage.getItem('activeByparrs');
-                if (savedByparrs) {
-                    const byparrsArray = JSON.parse(savedByparrs);
-                    activeByparrs = new Set(byparrsArray);
-                }
-            } catch (error) {
-                console.error('Error loading active requests:', error);
-            }
-        }
-        
-        function restoreTrackingDisplay() {
-            if (!currentUser || !currentUser.byparrAccess) return;
-            
-            // Clear all tracking displays first
-            currentUser.byparrAccess.forEach((_, index) => {
-                const container = document.getElementById(`tracking${index + 1}`);
-                if (container) {
-                    container.innerHTML = '<div style="text-align: center; color: var(--text-color); opacity: 0.5; padding: 20px;">ממתין לבקשה...</div>';
-                }
-            });
-            
-            // Restore only valid requests
-            currentUser.byparrAccess.forEach((byparrNum, index) => {
-                const columnNumber = index + 1;
-                const tracker = requestTrackers.get(columnNumber);
-                
-                if (tracker && tracker.size > 0) {
-                    const container = document.getElementById(`tracking${columnNumber}`);
-                    if (container) {
-                        container.innerHTML = '';
-                        
-                        // Restore each tracking item
-                        tracker.forEach((data, requestId) => {
-                            // Skip if data is incomplete
-                            if (!data.carNumber || !data.partName) {
-                                tracker.delete(requestId);
-                                return;
-                            }
-                            
-                            const item = document.createElement('div');
-                            const isRunning = data.status === 'running' || !data.status;
-                            item.className = `tracking-item ${data.status || 'running'}`;
-                            item.id = `track_${requestId}`;
-                            item.innerHTML = `
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div class="tracking-time">${data.startTime.toLocaleTimeString('he-IL')}</div>
-                                    <button class="btn-delete" onclick="deleteTrackingItem('${requestId}')" title="מחק">🗑️</button>
-                                </div>
-                                <div><strong>רכב:</strong> ${data.carNumber}</div>
-                                <div><strong>חלק:</strong> ${data.partName}</div>
-                                <div class="tracking-status">
-                                    <div class="status-dot ${data.status || 'running'}"></div>
-                                    <span>${data.statusMessage || 'ממשיך מהמקום שהפסקנו...'}</span>
-                                </div>
-                                ${isRunning ? `
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: ${data.progress || 0}%"></div>
-                                </div>` : ''}
-                                ${data.status === 'completed' && data.responseData ? `
-                                <div class="result-area" style="margin-top: 10px;">
-                                    <button class="btn-open-result" onclick="openResultWindow('${requestId}', ${columnNumber})" style="width: 100%; padding: 8px; background: var(--success-color); color: white; border: none; border-radius: 6px; cursor: pointer;">
-                                        🔗 פתח תוצאות
-                                    </button>
-                                </div>` : ''}
-                            `;
-                            
-                            container.insertBefore(item, container.firstChild);
-                            
-                            // Resume progress only if truly running
-                            if (isRunning && !data.responseData) {
-                                resumeProgress(columnNumber, requestId);
-                            }
-                        });
-                    }
-                }
-                
-                // Update column disabled state
-                updateColumnState(columnNumber);
-            });
-        }
-        
-        function resumeProgress(columnNumber, requestId) {
-            // Continue simulating progress for running requests
-            const tracker = requestTrackers.get(columnNumber);
-            if (tracker && tracker.has(requestId)) {
-                const data = tracker.get(requestId);
-                let progress = data.progress || 0;
-                
-                const interval = setInterval(() => {
-                    if (progress < 95) {
-                        progress += Math.random() * 10 + 5;
-                        if (progress > 95) progress = 95;
-                        
-                        const item = document.getElementById(`track_${requestId}`);
-                        if (item && item.querySelector('.progress-fill')) {
-                            item.querySelector('.progress-fill').style.width = `${progress}%`;
-                            
-                            // Update saved progress
-                            data.progress = progress;
-                            tracker.set(requestId, data);
-                            saveActiveRequests();
-                        } else {
-                            clearInterval(interval);
-                        }
-                    } else {
-                        clearInterval(interval);
-                    }
-                }, 1000);
-            }
+        // Session Management
+        function generateSessionId() {
+            const timestamp = new Date().toISOString().replace(/[-:.]/g, '');
+            const random = Math.random().toString(36).substring(2, 8);
+            return `${currentUser.username}_${timestamp}_${random}`;
         }
         
         // User Authentication
@@ -1355,16 +1144,6 @@
             const sessionData = getStoredSession();
             if (sessionData && isSessionValid(sessionData)) {
                 currentUser = sessionData;
-                
-                // Clear any stuck requests on fresh login
-                if (!sessionStorage.getItem('session_restored')) {
-                    localStorage.removeItem('activeRequests');
-                    localStorage.removeItem('activeByparrs');
-                    requestTrackers.clear();
-                    activeByparrs.clear();
-                    sessionStorage.setItem('session_restored', 'true');
-                }
-                
                 showLoggedIn();
             } else {
                 showLogin();
@@ -1431,7 +1210,6 @@
             
             showTab('search');
             generateRequestColumns();
-            restoreTrackingDisplay(); // Restore tracking after page refresh
             
             // Load saved settings
             const savedMode = localStorage.getItem('webhook_mode') || 'railway';
@@ -1457,12 +1235,7 @@
         
         function logout() {
             sessionStorage.removeItem('userSession');
-            sessionStorage.removeItem('session_restored');
-            localStorage.removeItem('activeRequests');
-            localStorage.removeItem('activeByparrs');
             currentUser = null;
-            requestTrackers.clear();
-            activeByparrs.clear();
             showLogin();
         }
         
