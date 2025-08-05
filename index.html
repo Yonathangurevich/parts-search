@@ -991,7 +991,10 @@
             item.className = 'tracking-item running';
             item.id = `track_${data.requestId}`;
             item.innerHTML = `
-                <div class="tracking-time">${data.startTime.toLocaleTimeString('he-IL')}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="tracking-time">${data.startTime.toLocaleTimeString('he-IL')}</div>
+                    <button class="btn-delete" onclick="deleteTrackingItem('${data.requestId}')" title="מחק">🗑️</button>
+                </div>
                 <div><strong>רכב:</strong> ${data.carNumber}</div>
                 <div><strong>חלק:</strong> ${data.partName}</div>
                 <div class="tracking-status">
@@ -1001,7 +1004,18 @@
                 <div class="progress-bar">
                     <div class="progress-fill" style="width: 0%"></div>
                 </div>
+                <div class="result-area" style="display: none; margin-top: 10px;">
+                    <button class="btn-open-result" style="width: 100%; padding: 8px; background: var(--success-color); color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        🔗 פתח תוצאות
+                    </button>
+                </div>
             `;
+            
+            // Store request data
+            if (!requestTrackers.has(columnNumber)) {
+                requestTrackers.set(columnNumber, new Map());
+            }
+            requestTrackers.get(columnNumber).set(data.requestId, data);
             
             // Clear placeholder if exists
             if (container.querySelector('div[style*="text-align: center"]')) {
@@ -1009,6 +1023,19 @@
             }
             
             container.insertBefore(item, container.firstChild);
+        }
+        
+        // Delete tracking item
+        function deleteTrackingItem(requestId) {
+            const item = document.getElementById(`track_${requestId}`);
+            if (item) {
+                item.remove();
+                
+                // Clean up from trackers
+                requestTrackers.forEach((tracker) => {
+                    tracker.delete(requestId);
+                });
+            }
         }
         
         function updateTrackingStatus(columnNumber, requestId, status, message) {
