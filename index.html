@@ -500,6 +500,23 @@
             display: inline-block;
         }
         
+        /* Clear button for all completed */
+        .clear-all-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin: 10px auto;
+            display: block;
+        }
+        
+        .clear-all-btn:hover {
+            background: #5a6268;
+        }
+        
         /* Responsive */
         @media (max-width: 1024px) {
             .requests-columns {
@@ -606,7 +623,7 @@
                     </div>
                     
                     <div style="text-align: center;">
-                        <button type="submit" class="btn" id="searchButton">🚀 שלח את כל הבקשות</button>
+                        <button type="submit" class="btn" id="searchButton">🚀 שלח בקשות</button>
                     </div>
                 </form>
             </div>
@@ -614,6 +631,7 @@
             <!-- Tracking Section -->
             <div class="tracking-section">
                 <h3 style="text-align: center; margin-bottom: 20px;">📊 מעקב בקשות בזמן אמת</h3>
+                <button class="clear-all-btn" onclick="clearAllCompleted()">🗑️ נקה הושלמו</button>
                 <div class="tracking-grid" id="trackingGrid">
                     <!-- Tracking columns will be generated here -->
                 </div>
@@ -692,13 +710,7 @@
         // Variables
         let currentUser = null;
         let requestTrackers = new Map();
-        
-        // BYPARR Access Mapping
-        const DEFAULT_BYPARR_ACCESS = {
-            'admin': [1, 2, 3],
-            'sales1': [4, 5, 6],
-            'service': [7, 8, 9]
-        };
+        let activeByparrs = new Set();
 
         // Users Database with BYPARR access
         let USERS_DATABASE = {
@@ -739,6 +751,7 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             loadUsersDatabase();
+            loadActiveRequests();
             checkExistingLogin();
             setupEventListeners();
         });
@@ -767,6 +780,143 @@
                     localStorage.setItem('custom_webhook_url', WEBHOOK_URL);
                 }
             });
+        }
+        
+        // Save and Load Active Requests
+        function saveActiveRequests() {
+            const requestsData = {};
+            requestTrackers.forEach((tracker, columnNumber) => {
+                requestsData[columnNumber] = {};
+                tracker.forEach((data, requestId) => {
+                    requestsData[columnNumber][requestId] = {
+                        ...data,
+                        startTime: data.startTime.toISOString()
+                    };
+                });
+            });
+            
+            const activeByparrsArray = Array.from(activeByparrs);
+            
+            localStorage.setItem('activeRequests', JSON.stringify(requestsData));
+            localStorage.setItem('activeByparrs', JSON.stringify(activeByparrsArray));
+        }
+        
+        function loadActiveRequests() {
+            try {
+                // Load request trackers
+                const savedRequests = localStorage.getItem('activeRequests');
+                if (savedRequests) {
+                    const requestsData = JSON.parse(savedRequests);
+                    Object.entries(requestsData).forEach(([columnNumber, requests]) => {
+                        const tracker = new Map();
+                        Object.entries(requests).forEach(([requestId, data]) => {
+                            tracker.set(requestId, {
+                                ...data,
+                                startTime: new Date(data.startTime)
+                            });
+                        });
+                        requestTrackers.set(parseInt(columnNumber), tracker);
+                    });
+                }
+                
+                // Load active BYPARRs
+                const savedByparrs = localStorage.getItem('activeByparrs');
+                if (savedByparrs) {
+                    const byparrsArray = JSON.parse(savedByparrs);
+                    activeByparrs = new Set(byparrsArray);
+                }
+            } catch (error) {
+                console.error('Error loading active requests:', error);
+            }
+        }
+        
+        function restoreTrackingDisplay() {
+            if (!currentUser || !currentUser.byparrAccess) return;
+            
+            currentUser.byparrAccess.forEach((byparrNum, index) => {
+                const columnNumber = index + 1;
+                const tracker = requestTrackers.get(columnNumber);
+                
+                if (tracker && tracker.size > 0) {
+                    const container = document.getElementById(`tracking${columnNumber}`);
+                    if (container) {
+                        container.innerHTML = '';
+                        
+                        // Restore each tracking item
+                        tracker.forEach((data, requestId) => {
+                            // Skip if data is incomplete
+                            if (!data.carNumber || !data.partName) {
+                                tracker.delete(requestId);
+                                return;
+                            }
+                            
+                            const item = document.createElement('div');
+                            const isRunning = data.status === 'running' || !data.status;
+                            item.className = `tracking-item ${data.status || 'running'}`;
+                            item.id = `track_${requestId}`;
+                            item.innerHTML = `
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div class="tracking-time">${data.startTime.toLocaleTimeString('he-IL')}</div>
+                                    <button class="btn-delete" onclick="deleteTrackingItem('${requestId}')" title="מחק">🗑️</button>
+                                </div>
+                                <div><strong>רכב:</strong> ${data.carNumber}</div>
+                                <div><strong>חלק:</strong> ${data.partName}</div>
+                                <div class="tracking-status">
+                                    <div class="status-dot ${data.status || 'running'}"></div>
+                                    <span>${data.statusMessage || 'ממשיך מהמקום שהפסקנו...'}</span>
+                                </div>
+                                ${isRunning ? `
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${data.progress || 0}%"></div>
+                                </div>` : ''}
+                                ${data.status === 'completed' && data.responseData ? `
+                                <div class="result-area" style="margin-top: 10px;">
+                                    <button class="btn-open-result" onclick="openResultWindow('${requestId}', ${columnNumber})" style="width: 100%; padding: 8px; background: var(--success-color); color: white; border: none; border-radius: 6px; cursor: pointer;">
+                                        🔗 פתח תוצאות
+                                    </button>
+                                </div>` : ''}
+                            `;
+                            
+                            container.insertBefore(item, container.firstChild);
+                        });
+                    }
+                }
+                
+                // Update column disabled state
+                updateColumnState(columnNumber);
+            });
+        }
+        
+        // Update column state based on active BYPARR
+        function updateColumnState(columnNumber) {
+            const byparrNum = currentUser.byparrAccess[columnNumber - 1];
+            const column = document.querySelectorAll('.request-column')[columnNumber - 1];
+            
+            if (column) {
+                if (activeByparrs.has(byparrNum)) {
+                    // Disable column if BYPARR is active
+                    column.style.opacity = '0.5';
+                    column.style.pointerEvents = 'none';
+                    
+                    // Add active indicator
+                    let indicator = column.querySelector('.active-indicator');
+                    if (!indicator) {
+                        indicator = document.createElement('div');
+                        indicator.className = 'active-indicator';
+                        indicator.innerHTML = '⚠️ BYPARR פעיל - ממתין לסיום...';
+                        indicator.style.cssText = 'background: var(--warning-color); color: white; padding: 8px; border-radius: 6px; text-align: center; margin-bottom: 10px;';
+                        column.insertBefore(indicator, column.firstChild.nextSibling);
+                    }
+                } else {
+                    // Enable column
+                    column.style.opacity = '1';
+                    column.style.pointerEvents = 'auto';
+                    
+                    // Remove indicator
+                    const indicator = column.querySelector('.active-indicator');
+                    if (indicator) indicator.remove();
+                }
+            }
         }
         
         // Cloud Mode Selection
@@ -883,16 +1033,24 @@
             }
         }
         
-        // Perform Search
+        // Perform Search - Fixed to allow single requests
         async function performSearch() {
             const requests = [];
             const byparrNumbers = currentUser.byparrAccess || [1, 2, 3];
             
-            byparrNumbers.forEach((byparrNum, index) => {
+            // Check each column for input
+            for (let index = 0; index < byparrNumbers.length; index++) {
                 const columnNum = index + 1;
+                const byparrNum = byparrNumbers[index];
                 const carNumber = document.getElementById(`carNumber${columnNum}`).value.trim();
                 const partName = document.getElementById(`partName${columnNum}`).value.trim();
                 const customerNote = document.getElementById(`customerNote${columnNum}`).value.trim();
+                
+                // Skip if BYPARR is already active
+                if (activeByparrs.has(byparrNum) && (carNumber || partName)) {
+                    showError('searchError', `BYPARR-${byparrNum} כבר פעיל! המתן לסיום הבקשה הקודמת`);
+                    continue;
+                }
                 
                 if (carNumber && partName) {
                     requests.push({
@@ -903,11 +1061,10 @@
                         customerNote
                     });
                 }
-            });
+            }
             
             if (requests.length === 0) {
-                showError('searchError', 'אנא מלא לפחות בקשה אחת');
-                return;
+                return; // No error message - allow empty submissions
             }
             
             const searchButton = document.getElementById('searchButton');
@@ -977,15 +1134,16 @@
                 
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
-                // Handle response
+                // Handle response - DO NOT open window automatically
                 const contentType = response.headers.get('content-type');
                 if (contentType && contentType.includes('text/html')) {
                     const htmlContent = await response.text();
                     
-                    // Store HTML content instead of opening immediately
-                    updateTrackingStatus(requestData.columnNumber, requestId, 'completed', 'הושלם - לחץ לפתיחה', htmlContent);
+                    // Just update status and store content - NO automatic window opening
+                    updateTrackingStatus(requestData.columnNumber, requestId, 'completed', '✅ הושלם - לחץ לפתיחה', htmlContent);
                 } else {
-                    updateTrackingStatus(requestData.columnNumber, requestId, 'completed', 'הושלם בהצלחה');
+                    const jsonResponse = await response.json();
+                    updateTrackingStatus(requestData.columnNumber, requestId, 'completed', '✅ הושלם בהצלחה', JSON.stringify(jsonResponse));
                 }
                 
             } catch (error) {
@@ -1022,11 +1180,25 @@
                 </div>
             `;
             
-            // Store request data
+            // Store request data with status
             if (!requestTrackers.has(columnNumber)) {
                 requestTrackers.set(columnNumber, new Map());
             }
-            requestTrackers.get(columnNumber).set(data.requestId, data);
+            const trackerData = {
+                ...data,
+                status: 'running',
+                statusMessage: 'שולח בקשה...',
+                progress: 0
+            };
+            requestTrackers.get(columnNumber).set(data.requestId, trackerData);
+            
+            // Mark BYPARR as active
+            const byparrNum = currentUser.byparrAccess[columnNumber - 1];
+            activeByparrs.add(byparrNum);
+            updateColumnState(columnNumber);
+            
+            // Save state
+            saveActiveRequests();
             
             // Clear placeholder if exists
             if (container.querySelector('div[style*="text-align: center"]')) {
@@ -1042,10 +1214,23 @@
             if (item) {
                 item.remove();
                 
-                // Clean up from trackers
-                requestTrackers.forEach((tracker) => {
-                    tracker.delete(requestId);
+                // Clean up from trackers and update BYPARR state
+                let columnToUpdate = null;
+                requestTrackers.forEach((tracker, columnNumber) => {
+                    if (tracker.has(requestId)) {
+                        tracker.delete(requestId);
+                        columnToUpdate = columnNumber;
+                        
+                        // Check if this was the last request for this BYPARR
+                        if (tracker.size === 0) {
+                            const byparrNum = currentUser.byparrAccess[columnNumber - 1];
+                            activeByparrs.delete(byparrNum);
+                            updateColumnState(columnNumber);
+                        }
+                    }
                 });
+                
+                saveActiveRequests();
             }
         }
         
@@ -1064,13 +1249,16 @@
                 item.querySelector('.progress-bar').style.display = 'none';
             }
             
-            // Store response data if completed
-            if (status === 'completed' && responseData) {
-                const tracker = requestTrackers.get(columnNumber);
-                if (tracker && tracker.has(requestId)) {
-                    const data = tracker.get(requestId);
+            // Update tracker data
+            const tracker = requestTrackers.get(columnNumber);
+            if (tracker && tracker.has(requestId)) {
+                const data = tracker.get(requestId);
+                data.status = status;
+                data.statusMessage = message;
+                
+                // Store response data if completed
+                if (status === 'completed' && responseData) {
                     data.responseData = responseData;
-                    tracker.set(requestId, data);
                     
                     // Show result button
                     const resultArea = item.querySelector('.result-area');
@@ -1080,6 +1268,26 @@
                         button.onclick = () => openResultWindow(requestId, columnNumber);
                     }
                 }
+                
+                // If completed or failed, remove from active BYPARRs
+                if (status === 'completed' || status === 'failed') {
+                    // Check if this is the last active request for this BYPARR
+                    let hasOtherActive = false;
+                    tracker.forEach((req, id) => {
+                        if (id !== requestId && req.status === 'running') {
+                            hasOtherActive = true;
+                        }
+                    });
+                    
+                    if (!hasOtherActive) {
+                        const byparrNum = currentUser.byparrAccess[columnNumber - 1];
+                        activeByparrs.delete(byparrNum);
+                        updateColumnState(columnNumber);
+                    }
+                }
+                
+                tracker.set(requestId, data);
+                saveActiveRequests();
             }
         }
         
@@ -1112,12 +1320,37 @@
                     if (progressBar) {
                         progressBar.style.width = `${progress}%`;
                     }
+                    
+                    // Update saved progress
+                    const tracker = requestTrackers.get(columnNumber);
+                    if (tracker && tracker.has(requestId)) {
+                        const data = tracker.get(requestId);
+                        data.progress = progress;
+                        tracker.set(requestId, data);
+                        saveActiveRequests();
+                    }
                 }
                 
                 if (progress >= 95) {
                     clearInterval(interval);
                 }
             }, 500);
+        }
+        
+        // Clear all completed requests
+        function clearAllCompleted() {
+            requestTrackers.forEach((tracker, columnNumber) => {
+                const completedIds = [];
+                tracker.forEach((data, requestId) => {
+                    if (data.status === 'completed') {
+                        completedIds.push(requestId);
+                    }
+                });
+                
+                completedIds.forEach(requestId => {
+                    deleteTrackingItem(requestId);
+                });
+            });
         }
         
         // Session Management
@@ -1144,6 +1377,16 @@
             const sessionData = getStoredSession();
             if (sessionData && isSessionValid(sessionData)) {
                 currentUser = sessionData;
+                
+                // Clear any stuck requests on fresh login
+                if (!sessionStorage.getItem('session_restored')) {
+                    localStorage.removeItem('activeRequests');
+                    localStorage.removeItem('activeByparrs');
+                    requestTrackers.clear();
+                    activeByparrs.clear();
+                    sessionStorage.setItem('session_restored', 'true');
+                }
+                
                 showLoggedIn();
             } else {
                 showLogin();
@@ -1210,6 +1453,7 @@
             
             showTab('search');
             generateRequestColumns();
+            restoreTrackingDisplay(); // Restore tracking after page refresh
             
             // Load saved settings
             const savedMode = localStorage.getItem('webhook_mode') || 'railway';
@@ -1235,7 +1479,12 @@
         
         function logout() {
             sessionStorage.removeItem('userSession');
+            sessionStorage.removeItem('session_restored');
+            localStorage.removeItem('activeRequests');
+            localStorage.removeItem('activeByparrs');
             currentUser = null;
+            requestTrackers.clear();
+            activeByparrs.clear();
             showLogin();
         }
         
